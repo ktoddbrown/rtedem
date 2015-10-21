@@ -4,6 +4,7 @@
 #' @param par named array of turnover times (tau) and transfers (trans) following patterns specified in \code{publishedParameters.R}
 #' @param tauStr string with the regexp that matches the name of the turnover times in par
 #' @param transStr string with the regexp that matches the name of the transfer proportions in par
+#' @param verbose boolean for debuging statements
 #'
 #' @return matrix representing the decomposition rate
 #' @export
