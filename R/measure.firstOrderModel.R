@@ -1,45 +1,18 @@
-##optimization function for using CO2 and fast pool ratio data
-CO2bio.all.opt.fn <- function(par, refData, ratioPool = 1, #1=fast, 2=slow, 3=passive
-                          C_bulk=1, #total intial soil carbon
-                          measureFn=ll.measure, 
-                          measurePools=c('dCO2'), #CO2:cumulative C-CO2, dCO2:daily CO2 flux, 
-                                                 #fast:fast carbon pool, dCO2.young:daily CO2 flux <=6 months, 
-                                                 #dCO2.old:daily CO2 flux >6 months
-                          youngThreadhold=10, #cut off for young carbon pool
-                          measureType=c('mean'), #mean:normalize score to data type and case, simple:simple sum
-                          ##TODO add an LL weight?
-                          debug=FALSE){
+
+measure.firstOrderModel <- function(par, refData, 
+                         relTime = list(), #ex: list(C1=14)
+                         temporalSplit = c(), #ex: c(10)
+                         C_bulk=1, #total intial soil carbon
+                         measureFn=ll.measure, 
+                         measurePools=c('dCO2'), #subset of intersect(names(refData), names(model)
+                         dt=1,
+                         tauStr='tau', transStr='transfer', allocationStr='a', 
+                         verbose=FALSE){
 
    
-    
-    if(any((par[grepl('a1$', names(par))] + par[grepl('a2$', names(par))] ) > 1)){
-                                        #Check that we don't allocate
-                             #...100% or more to the first two pools
-      if(debug) print(par)
-      if(debug) print((par[grepl('a1$',names(par))] + par[grepl('a2$',names(par))] ))
-      if(debug) cat('bad allocation\n')
-        return(1e32)         #If we do then return an impossibly huge
-                             #...number since INF breaks modMCMC
-    }
-    transfer <- par[grepl('transfer', names(par))]
-    transferMatrix <- matrix(c(-1, transfer[1], transfer[2], 
-                               transfer[3], -1, transfer[4], 
-                               transfer[5], 0, -1), nrow=3)
-    if(any(colSums(transferMatrix) > 0)){
-      if(debug) print(par)
-      if(debug) print(transferMatrix)
-      if(debug) cat('bad transfers, violate conservation of mass\n')
-      return(1e32)
-    }
-
-    if(all(is.na(refData$ratio.mean))){
-      biomassRefTime <- 14
-    }else{
-      biomassRefTime <- min(refData$time[is.finite(refData$ratio.mean)])
-    }
-    modelOutput <- CO2bio.fn(par=par, myTime=unique(refData$time), 
-                             biomassRefTime=biomassRefTime,
-                             ratioPool=ratioPool, C_bulk=C_bulk)
+    modelOutput <- runModel(par=par, myTime=unique(refData$time), 
+                            C_bulk=C_bulk, dt=dt,
+                            tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, verbose=verbose)
     #modelOutput <- CO2bio.fn(par=par.true, myTime=unique(refData$time), biomassRefTime=14)
     
     evalPoints <- merge(refData, modelOutput, all=TRUE)
