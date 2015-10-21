@@ -7,5 +7,5 @@ Authors@R: person("K", "Todd-Brown", email="ktoddbrown@gmail.com", role= c("cre"
 Description: This package contains several popular decomposition models with their parameters.
 License: MIT + file LICENSE
 LazyData: TRUE
-Imports: assertthat, deSolve, plyr
+Imports: assertthat, deSolve, plyr, reshape2
 Suggests: testthat
