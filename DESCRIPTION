@@ -8,4 +8,5 @@ Description: This package contains several popular decomposition models with the
 License: MIT + file LICENSE
 LazyData: TRUE
 Imports: assertthat, deSolve, plyr, reshape2
-Suggests: testthat
+Suggests: testthat, knitr
+#VignetteBuilder: knitr

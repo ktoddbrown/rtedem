@@ -9,94 +9,50 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+There are several soil decomposition models already coded into *rtedem* including: CENTURY, TECO, CLM, and YASSO07.
+
 ```{r}
+library(ggplot2)
+library(plyr)
+library(Matrix)
+library(rtedem)
 
-#@param param.df is a data frame with (modelStr, pool, lower, upper)
-plotModelTurnovers <- function(param.df){
-  
-  param.df$modelStr<- factor(param.df$modelStr)
-  param.df$pool <- factor(param.df$pool)
-  param.df$x <- unclass(param.df$modelStr)
-  #print(param.df)
-  axisLabels <- unique(param.df[, c('x', 'modelStr')])
-  p <- ggplot(param.df) + geom_rect(aes(ymin=x-0.25, ymax=x+0.25, xmin=lower, xmax=upper, fill=pool)) + 
-    geom_point(aes(y=x, x=val)) +
-    scale_x_log10() + scale_y_continuous(breaks=axisLabels$x, labels=axisLabels$modelStr) + 
-    xlab('Turnover time range[yr]') + ylab('')
-  return(p)
-}
+codedParameters <- publishedParameters()
 
-plotModelTransfers <- function(parList, numPool = 5){
-  poolOrder <- lapply(parList, function(x)order(-1*x$true[grepl('K', x$name)]))
-  countPools <- unlist(lapply(poolOrder, length))
-  
-  p <- ggplot(data.frame(x=rep(1:numPool, each=numPool), y=-1*rep(1:numPool, times=numPool))) + 
-    geom_rect(aes(xmin=x-0.5, xmax=x+0.5, ymin=y-0.5, ymax=y+0.5), alpha=0, color='black')
-  
-  modelArr <- names(countPools)[countPools == numPool]
-  if(length(modelArr) > 4){
-    warning('More then 4 pools match desired pool number; truncating.')
-  }
-  
-  for(modelIndex in 1:4){
-    modelStr <- modelArr[modelIndex]
-    ii <- as.numeric(gsub('^A', '', parList[[modelStr]]$name[grepl('^A', parList[[modelStr]]$name)]))
-    transfers <- parList[[modelStr]]$true[grepl('^A', parList[[modelStr]]$name)]
-    fromPool <- poolOrder[[modelStr]][rep(1:numPool, each=numPool)[ii]]
-    toPool <- -1*poolOrder[[modelStr]][rep(1:numPool, times=numPool)[ii]]
-    voffset <- c(0.25, 0.25, -0.25, -0.25)[modelIndex]
-    hoffset <- c(0.25, -0.25, 0.25, -0.25)[modelIndex]
-    col <- c('red', 'blue', 'green', 'purple')[modelIndex]
-    p <- p + annotate('text', x=fromPool+hoffset, y=toPool+voffset, label=transfers, color=col)
-  }
-  return(p)
-}
+minMaxBounds <- makeModelBounds(codedParameters)
 ```
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+```{r plotTurnover, fig.width=6}
 
-## Vignette Info
-
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
-
-## Styles
-
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
-
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
-
-## Figures
-
-The figure sizes have been customised so that you can easily put two images side-by-side. 
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+turnovers <- ldply(names(minMaxBounds), function(xx){
+  ans <- minMaxBounds[[xx]][grepl('K', minMaxBounds[[xx]]$name),]
+  ans[,c('true', 'min', 'max')] <- ans[,c('true', 'min', 'max')] * -1
+  ans$model <- xx
+  return(ans)
+})
+turnovers$modelIndex <- as.numeric(as.factor(turnovers$model))
+yAxis <- unique(turnovers[,c('model', 'modelIndex')])
+ggplot(turnovers) + geom_rect(aes(ymax=modelIndex+0.45, ymin=modelIndex-0.45, xmax=min/365, xmin=max/365, fill=name)) + geom_point(aes(y=modelIndex, x=true/365)) + scale_x_log10() + scale_y_continuous(breaks=yAxis$modelIndex, labels=yAxis$model) + labs(title='Comparison of turnover times', y='', x='time [yr]') + guides(fill=FALSE)
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
+```{r}
+decayMatrix <- llply(codedParameters, function(xx){
+  Turnover <- Matrix(diag(xx$tau/365))
+  A <- matrix(data=0, nrow=dim(Turnover)[1], ncol=dim(Turnover)[2])
+  A[as.numeric(gsub('A', '', xx$trans$name))] <- xx$trans$val
+  return(list(turnover = Turnover, transfer=Matrix(A), K=Matrix(diag(1/(xx$tau/365)))))
+})
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
+l_ply(names(codedParameters), function(xx){
+  #cat(xx,' turnover [year]:\n');print(decayMatrix[[xx]]$turnover)
+  cat(xx, ' transfer Matrix:\n');print(decayMatrix[[xx]]$transfer)
+})
 
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
+l_ply(names(codedParameters), function(xx){
+  cat(xx, 'decay Matrix (1/tau*transfer):\n')
+  A <- decayMatrix[[xx]]$transfer
+  diag(A) <- -1
+  print(decayMatrix[[xx]]$K%*%A)
+})
 ```
-
-Also a quote using `>`:
-
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
