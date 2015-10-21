@@ -4,15 +4,22 @@
 \alias{makeDecompMatrix}
 \title{Create decomposition matrix}
 \usage{
-makeDecompMatrix(modelBase = publishedParameters())
+makeDecompMatrix(par, tauStr = "tau", transStr = "A", verbose = FALSE)
 }
 \arguments{
-\item{modelBase}{list of models following patterns specified in \code{publishedParameters.R}}
+\item{par}{named array of turnover times (tau) and transfers (trans) following patterns specified in \code{publishedParameters.R}}
+
+\item{tauStr}{string with the regexp that matches the name of the turnover times in par}
+
+\item{transStr}{string with the regexp that matches the name of the transfer proportions in par}
 }
 \value{
-a list of matricies
+matrix representing the decomposition rate
 }
 \description{
-Create a decomposition matrix from specified turnover and transfer arrays.
+Create a decomposition matrix from specified turnover and transfers.
+}
+\examples{
+makeDecompMatrix(unlist(list(tau1=10, tau2=100, A2=0.5)))
 }
 
