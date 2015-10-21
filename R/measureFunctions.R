@@ -37,7 +37,7 @@ RMSE.measure <- function(model, data, ...){
 ll.measure <- function(model, data, sd){
 
     if(length(model) == 0 && length(data) == 0){
-        return(-INF)
+        return(-Inf)
     }
   
     if(length(as.vector(model)) != length(as.vector(data))){
