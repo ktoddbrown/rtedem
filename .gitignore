@@ -5,3 +5,5 @@
 man/*
 
 man/makeDecompMatrix.Rd
+
+.Rbuildignore
