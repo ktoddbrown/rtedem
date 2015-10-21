@@ -1,0 +1,51 @@
+---
+title: "Model fit using simulated data"
+author: "K Todd-Brown (ktoddbrown@gmail.com)"
+date: "October 21, 2015"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+par.ls <- publishedParameters()[['TECO']]
+par <- c(rep(0.1, length(par.ls$tau)-1), par.ls$tau, par.ls$trans$val)
+names(par) <- c(sprintf('label1.a%d', 1:(length(par.ls$tau)-1)), sprintf('tau%d', 1:length(par.ls$tau)), as.character(par.ls$trans$name))
+
+C_bulk <- 1
+dt <- 1
+tauStr <- 'tau'
+transStr <- 'A'
+allocationStr <- 'a'
+relTime <- list(C1=5)
+temporalSplit <- c(10)
+
+modelOutput <- runModel(par=par, timeArr=1:25, C_bulk=C_bulk, dt=dt,
+                        tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, 
+                        verbose=FALSE)
+
+modelOutput[,sprintf('rel%s', names(relTime))] <- t(ldply(names(relTime),function(nameStr){ modelOutput[,nameStr]/modelOutput[modelOutput$time == relTime[[nameStr]], nameStr]}))
+modelOutput$CO2 <- C_bulk - rowSums(modelOutput[,grepl('^C\\d+$', names(modelOutput))])
+temp <- modelOutput[,c('time', 'CO2')]
+temp$time <- temp$time-dt
+names(temp) <- c('time', 'nextCO2')
+temp <- merge(modelOutput[,c('time', 'CO2')], temp)
+temp$dCO2 <- (temp$nextCO2-temp$CO2)/dt
+modelOutput <- merge(modelOutput, temp[,c('time', 'dCO2')], all=TRUE)
+
+##Construct artifical data
+refData <- as.data.frame(modelOutput[,c('time', 'label', 'relC1', 'dCO2')])
+refData[refData$time != 9, 'relC1'] <- NA
+refData$relC1.mean <- refData$relC1*rnorm(dim(refData)[1], mean=1, sd=0.1)
+refData$relC1.sd <- refData$relC1*0.1
+refData$dCO2.mean <- refData$dCO2*rnorm(dim(refData)[1], mean=1, sd=0.1)
+refData$dCO2.sd <- refData$dCO2*0.1
+refData.mean <- melt(refData[,c('time', 'label', names(refData)[grepl('mean$', names(refData))])], id.vars = c('time', 'label'), value.name='mean')
+refData.mean$variable <- gsub('\\.mean$', '', refData.mean$variable)
+refData.mean <- refData.mean[is.finite(refData.mean$mean), ]
+refData.sd <- melt(refData[,c('time', 'label', names(refData)[grepl('sd$', names(refData))])], id.vars=c('time', 'label'), value.name='sd')
+refData.sd$variable <- gsub('\\.sd$', '', refData.sd$variable)
+refData <- merge(refData.mean, refData.sd)
+```
