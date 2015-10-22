@@ -1,5 +1,5 @@
 ---
-title: "Describe models included in rtedem"
+title: "Summary of models included in rtedem"
 author: "K Todd-Brown (ktoddbrown@gmail.com)"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -33,7 +33,9 @@ turnovers <- ldply(names(minMaxBounds), function(xx){
 })
 turnovers$modelIndex <- as.numeric(as.factor(turnovers$model))
 yAxis <- unique(turnovers[,c('model', 'modelIndex')])
-ggplot(turnovers) + geom_rect(aes(ymax=modelIndex+0.45, ymin=modelIndex-0.45, xmax=min/365, xmin=max/365, fill=name)) + geom_point(aes(y=modelIndex, x=true/365)) + scale_x_log10() + scale_y_continuous(breaks=yAxis$modelIndex, labels=yAxis$model) + labs(title='Comparison of turnover times', y='', x='time [yr]') + guides(fill=FALSE)
+ggplot(turnovers) + geom_rect(aes(ymax=modelIndex+0.45, ymin=modelIndex-0.45, xmax=min/365, xmin=max/365, fill=name)) + 
+  geom_point(aes(y=modelIndex, x=true/365)) + 
+  scale_x_log10() + scale_y_continuous(breaks=yAxis$modelIndex, labels=yAxis$model) + labs(title='Comparison of turnover times', y='', x='time [yr]') + guides(fill=FALSE)
 ```
 
 ```{r}
@@ -53,6 +55,6 @@ l_ply(names(codedParameters), function(xx){
   cat(xx, 'decay Matrix (1/tau*transfer):\n')
   A <- decayMatrix[[xx]]$transfer
   diag(A) <- -1
-  print(decayMatrix[[xx]]$K%*%A)
+  print(decayMatrix[[xx]]$K %*% A)
 })
 ```
