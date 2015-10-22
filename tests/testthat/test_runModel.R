@@ -22,3 +22,8 @@ test_that("runModel correctly calculates step", {
   
   expect_true(all(abs((y0+K %*% t(y0))-test[2,1+1:length(par.ls$tau)])/test[2, 1+1:length(par.ls$tau)] < 1e-3))
 })
+
+test_that("runModel correctly runs a one pool model",{
+  modelOut <- runModel(par=unlist(list(tau1=180)), timeArr=2^seq(0, 10, length=50))
+  expect_true(all(abs(modelOut$C1-exp(-1/180*modelOut$time) ) < 1e-5))
+})
