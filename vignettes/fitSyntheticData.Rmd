@@ -8,44 +8,57 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-
 ```{r}
-par.ls <- publishedParameters()[['TECO']]
-par <- c(rep(0.1, length(par.ls$tau)-1), par.ls$tau, par.ls$trans$val)
-names(par) <- c(sprintf('label1.a%d', 1:(length(par.ls$tau)-1)), sprintf('tau%d', 1:length(par.ls$tau)), as.character(par.ls$trans$name))
+library(rtedem)
+library(ggplot2)
+library(FME)
+library(reshape2)
+
+```
+
+```{r setUpParameters, fig.width=6}
+##par.ls <- publishedParameters()[['TECO']]
+##par <- c(rep(0.1, length(par.ls$tau)-1), par.ls$tau, par.ls$trans$val)
+##names(par) <- c(sprintf('label1.a%d', 1:(length(par.ls$tau)-1)), sprintf('tau%d', 1:length(par.ls$tau)), as.character(par.ls$trans$name))
+
+par <- unlist(list('label1.a1'=0.1, tau1=180, tau2=100*365))
+parLimit <- list(lower=unlist(list('label1.a1'=0, tau1=1, tau2=10*365)),
+                 upper=unlist(list('label1.a1'=1, tau1=10*365, tau2=1e3*365)))
 
 C_bulk <- 1
 dt <- 1
 tauStr <- 'tau'
 transStr <- 'A'
 allocationStr <- 'a'
-relTime <- list(C1=5)
+relTime <- list(C1=4)
 temporalSplit <- c(10)
 
-modelOutput <- runModel(par=par, timeArr=1:25, C_bulk=C_bulk, dt=dt,
+refData <- createSynData(par=par, timeArr=floor(2^(seq(1, 10, length=50))), 
+                        C_bulk=C_bulk, dt=dt, relTime=list(),
                         tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, 
+                        relSd.ls = list(dCO2=0.2, relC=0),
                         verbose=FALSE)
+refData <- refData[refData$time != 0, ]
+print(head(refData))
+ggplot(refData[refData$variable %in% 'dCO2',]) + geom_point(aes(x=time, y=mean, color=label)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd, group=label)) + scale_x_log10()
+#ggplot(refData[refData$variable %in% 'relC1',]) + geom_point(aes(x=time, y=mean, color=label)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd, group=label)) + scale_x_log10()
+```
 
-modelOutput[,sprintf('rel%s', names(relTime))] <- t(ldply(names(relTime),function(nameStr){ modelOutput[,nameStr]/modelOutput[modelOutput$time == relTime[[nameStr]], nameStr]}))
-modelOutput$CO2 <- C_bulk - rowSums(modelOutput[,grepl('^C\\d+$', names(modelOutput))])
-temp <- modelOutput[,c('time', 'CO2')]
-temp$time <- temp$time-dt
-names(temp) <- c('time', 'nextCO2')
-temp <- merge(modelOutput[,c('time', 'CO2')], temp)
-temp$dCO2 <- (temp$nextCO2-temp$CO2)/dt
-modelOutput <- merge(modelOutput, temp[,c('time', 'dCO2')], all=TRUE)
+```{r fig.width=6}
+print(measure.firstOrderModel(par, refData[refData$variable %in% 'dCO2',], relTime=relTime, temporalSplit=c(), return.df=TRUE))
+print(measure.firstOrderModel(par, refData[refData$variable %in% 'dCO2',], relTime=relTime, temporalSplit=c()))
 
-##Construct artifical data
-refData <- as.data.frame(modelOutput[,c('time', 'label', 'relC1', 'dCO2')])
-refData[refData$time != 9, 'relC1'] <- NA
-refData$relC1.mean <- refData$relC1*rnorm(dim(refData)[1], mean=1, sd=0.1)
-refData$relC1.sd <- refData$relC1*0.1
-refData$dCO2.mean <- refData$dCO2*rnorm(dim(refData)[1], mean=1, sd=0.1)
-refData$dCO2.sd <- refData$dCO2*0.1
-refData.mean <- melt(refData[,c('time', 'label', names(refData)[grepl('mean$', names(refData))])], id.vars = c('time', 'label'), value.name='mean')
-refData.mean$variable <- gsub('\\.mean$', '', refData.mean$variable)
-refData.mean <- refData.mean[is.finite(refData.mean$mean), ]
-refData.sd <- melt(refData[,c('time', 'label', names(refData)[grepl('sd$', names(refData))])], id.vars=c('time', 'label'), value.name='sd')
-refData.sd$variable <- gsub('\\.sd$', '', refData.sd$variable)
-refData <- merge(refData.mean, refData.sd)
+optResults <- modMCMC(f=measure.firstOrderModel, 
+                      p=par*rnorm(length(par), mean=1, sd=0.1),
+                      lower=parLimit$lower,
+                      upper=parLimit$upper,
+                      refData=refData[refData$variable %in% 'dCO2',], weighByCount=FALSE,
+                      niter=1e4)
+
+ggplot(melt(optResults$par)) + geom_line(aes(x=Var1, y=value)) + facet_wrap(~Var2, scales='free')
+
+temp <- createSynData(par=optResults$bestpar, timeArr=unique(floor(2^(seq(1, 10, length=50)))), C_bulk=C_bulk, dt=dt, relTime=list(), tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, relSd.ls = list(dCO2=0, relC=0))
+
+ggplot(refData[refData$variable %in% 'dCO2',]) + geom_point(aes(x=time, y=mean)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd)) + geom_line(data=temp, aes(x=time, y=mean)) + scale_y_log10() + scale_x_log10()
+
 ```
