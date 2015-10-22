@@ -44,7 +44,7 @@ ggplot(refData[refData$variable %in% 'dCO2',]) + geom_point(aes(x=time, y=mean, 
 #ggplot(refData[refData$variable %in% 'relC1',]) + geom_point(aes(x=time, y=mean, color=label)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd, group=label)) + scale_x_log10()
 ```
 
-```{r fig.width=6}
+```{r fig.width=4}
 print(measure.firstOrderModel(par, refData[refData$variable %in% 'dCO2',], relTime=relTime, temporalSplit=c(), return.df=TRUE))
 print(measure.firstOrderModel(par, refData[refData$variable %in% 'dCO2',], relTime=relTime, temporalSplit=c()))
 
@@ -57,8 +57,20 @@ optResults <- modMCMC(f=measure.firstOrderModel,
 
 ggplot(melt(optResults$par)) + geom_line(aes(x=Var1, y=value)) + facet_wrap(~Var2, scales='free')
 
-temp <- createSynData(par=optResults$bestpar, timeArr=unique(floor(2^(seq(1, 10, length=50)))), C_bulk=C_bulk, dt=dt, relTime=list(), tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, relSd.ls = list(dCO2=0, relC=0))
+modelResults <- createSynData(par=optResults$bestpar, timeArr=unique(floor(2^(seq(1, 10, length=50)))), C_bulk=C_bulk, dt=dt, relTime=list(), tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, relSd.ls = list(dCO2=0, relC=0))
+modelResults$index <- 0
+for(parIndex in sample(floor(dim(optResults$par)[1]*0.75):dim(optResults$par)[1], size=100)){
+  temp <- createSynData(par=optResults$par[parIndex,], timeArr=unique(floor(2^(seq(1, 10, length=50)))), C_bulk=C_bulk, dt=dt, relTime=list(), tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, relSd.ls = list(dCO2=0, relC=0))
+  temp$index <- parIndex
+  
+  modelResults <- rbind.fill(modelResults, temp)
+}
 
-ggplot(refData[refData$variable %in% 'dCO2',]) + geom_point(aes(x=time, y=mean)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd)) + geom_line(data=temp, aes(x=time, y=mean)) + scale_y_log10() + scale_x_log10()
+ggplot(refData[refData$variable %in% 'dCO2',])  + geom_line(data=modelResults, aes(x=time, y=mean, group=index), color='red', alpha=0.1) + geom_point(aes(x=time, y=mean)) + #geom_violin(data=modelResults[modelResults$time == max(modelResults$time),], aes(x=time, y=mean), scale='width') + 
+  geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd))+ scale_y_log10() + scale_x_log10() + labs(title='Model-SynData fit', x='CO2 flux [g-C-CO2 g^-1-C-soil day^-1]')
 
+for(varStr in names(par)){
+  parPlotData <- melt(optResults$par[unique(modelResults$index),varStr])
+  print(ggplot(parPlotData) + geom_histogram(aes(x=value), binwidth=diff(range(parPlotData$value))/30) +xlim(c(parLimit$lower[varStr], parLimit$upper[varStr])) + labs(title=varStr))
+}
 ```
