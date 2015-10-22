@@ -19,7 +19,7 @@ makeDecompMatrix <- function(par, tauStr='tau', transStr='A', verbose=FALSE){
   tau <- par[grepl('tau', names(par))]
   tau <- tau[as.numeric(gsub(tauStr, '', names(tau)))]
   assert_that(all(tau > 0))
-  k <- diag(1/tau)
+  k <- diag(1/tau, nrow=length(tau))
   if(verbose) {cat('K:\n'); print(k)}
   
   trans <- par[grepl(transStr, names(par))]
