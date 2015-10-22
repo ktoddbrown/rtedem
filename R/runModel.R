@@ -30,7 +30,9 @@ runModel <- function(par, timeArr, cModel=dC.firstOrderModel, C_bulk=1, dt=1,
   
   labelArr <- gsub(sprintf('\\.?%s1$', allocationStr), '', 
                    names(par)[grepl(sprintf('\\.?%s1$', allocationStr), names(par))])
-  
+  if(length(labelArr)==0){
+    labelArr <- c('default')
+  }
   ans <- data.frame()
   for(labelStr in labelArr){
     
@@ -43,8 +45,7 @@ runModel <- function(par, timeArr, cModel=dC.firstOrderModel, C_bulk=1, dt=1,
     if(verbose) {cat('y0:\n'); print(y0)}
     if(verbose) {cat('parms:\n'); print(par)}
     if(verbose) {cat('decayK:\n'); print(makeDecompMatrix(par, tauStr=tauStr, transStr=transStr))}
-    model <- as.data.frame(lsoda(y=y0, times=timeArr, func=cModel, parms=par, 
-                   tauStr=tauStr, transStr=transStr))
+    model <- as.data.frame(lsoda(y=y0, times=timeArr, func=cModel, parms=par, tauStr=tauStr, transStr=transStr))
     if(verbose) print(summary(model))
     #model <- data.frame(a=1)
     if(verbose) print(head(model))
