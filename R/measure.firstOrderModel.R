@@ -14,6 +14,7 @@
 #' @param allocationStr string defining the allocation names in par
 #' @param verbose boolean for debug statements
 #' @param return.df boolean to flag a full measure data frame return instead of a single summary values
+#' @param weighByCount boolean to flag if we are weighing the mean measures by the number of data points.
 #'
 #' @return a single numeric measure of the model fit to reference data
 #' @export
@@ -22,21 +23,22 @@
 measure.firstOrderModel <- function(par, refData, relTime = list(),
                          temporalSplit = c(), measureFn=ll.measure, 
                          dt=1, C_bulk=1, tauStr='tau', transStr='transfer', allocationStr='a',
-                         verbose=FALSE, return.df=FALSE){
+                         weighByCount=TRUE, return.df=FALSE, verbose=FALSE){
 
    
   assert_that(is.character(tauStr) && is.character(transStr) && is.character(allocationStr))
   assert_that(is.logical(verbose) && is.logical(return.df))
   assert_that(is.function(measureFn))
   assert_that(is.list(relTime))
-  assert_that(is.numeric(par) && is.numeric(temporalSplit))
+  assert_that(is.numeric(par))
+  assert_that(is.numeric(temporalSplit) || length(temporalSplit)==0)
   assert_that(is.data.frame(refData))
   
   assert_that(all(c('time', "label", "variable", "mean", "sd") %in% names(refData) ))
   assert_that(all(grepl('(C\\d+)|(relC\\d)|(^CO2$)|(^dCO2$)', unique(refData$variable))))
   
   
-    modelOutput <- runModel(par=par, myTime=unique(refData$time), C_bulk=C_bulk, dt=dt, tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, verbose=verbose)
+    modelOutput <- runModel(par=par, timeArr=unique(refData$time), C_bulk=C_bulk, dt=dt, tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, verbose=verbose)
     
     modelOutput[,sprintf('rel%s', names(relTime))] <- t(ldply(names(relTime),function(nameStr){ modelOutput[,nameStr]/modelOutput[modelOutput$time == relTime[[nameStr]], nameStr]}))
     
@@ -53,12 +55,15 @@ measure.firstOrderModel <- function(par, refData, relTime = list(),
     
     evalPoints$timeGroups <- cut(evalPoints$time, breaks=c(-Inf, temporalSplit, Inf))
     
-    measure.df <- ddply(evalPoints, c('label', 'variable', 'timeGroups'), summarize,
-                        measure=measureFn(model=model, data=mean, sd=sd),
-                        count=sum(is.finite(mean+sd+model)))
+    measure.df <- ddply(evalPoints, c('label', 'variable', 'timeGroups'), function(xx){
+                        data.frame(measure=measureFn(model=xx$model, data=xx$mean, sd=xx$sd),
+                                     count=sum(is.finite(xx$mean+xx$sd+xx$model)))})
     if(verbose){cat('measure.df:\n'); print(measure.df)}
     
-    ans <- mean((measure.df$measure/measure.df$count))*sum(measure.df$count)
+    ans <- mean((measure.df$measure/measure.df$count))
+    if(weighByCount){
+      ans <- ans*sum(measure.df$count)
+    }
     if(verbose){cat('measure: ', ans)}
     
     if(return.df){
