@@ -22,3 +22,7 @@ test_that("makeDecompMatrix correctly calculates test matrix", {
   dim(ans) <- c(2,2)
   expect_equal(makeDecompMatrix(unlist(list(tau1=10, tau2=100, A2=0.5))), ans)
 })
+
+test_that('R/makeDecompMatrix calculates a single pool model',{
+  expect_equal(makeDecompMatrix(par=unlist(list(tau1=180))), matrix(-1/180, nrow=1, ncol=1))
+})
