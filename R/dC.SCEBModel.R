@@ -43,7 +43,7 @@ dC.SCEBModel <- function(t, y, parms,
   if(grepl('^Monod$', rateFlags$uptake)){
     uptake <- parms$v_up*S*B/(parms$km_up+S)
   }else{
-    stop('Bad uptake flag.')
+    stop(sprintf('Bad uptake flag: %s',rateFlags$uptake) )
   }
   
   if(grepl('^uptake$', rateFlags$prod)){
