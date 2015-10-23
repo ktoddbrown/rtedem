@@ -6,7 +6,6 @@
 #' @param timeArr numeric time points of interest
 #' @param C_bulk numeric scalar of inital bulk carbon
 #' @param dt numeric scalar 'cap' time for dCO2 calculation
-#' @param allocationStr character string defining the allocation parameters in par
 #' @param relTime list of C pools to normalize and their associated normalization time points
 #' @param relSd.ls list of relative standard deviation to assign to dCO2 and relative C pools
 #' @param ... parameters to pass to runModel
@@ -18,21 +17,20 @@
 #' @examples
 #' synData <- createSynData(par=unlist(list('label1.a1'=0.1, tau1=180, tau2=10*365)), timeArr=2^(seq(0, 10, length=50)))
 #' print(head(synData))
-createSynData <- function(par, timeArr, C_bulk=1, dt=1, allocationStr='a', relTime=list(), relSd.ls=list(dCO2=0.05, relC=0.1), ..., verbose=FALSE){
+createSynData <- function(par, timeArr, C_bulk=1, dt=1, relTime=list(), relSd.ls=list(dCO2=0.05, relC=0.1), ..., verbose=FALSE){
   modelOutput <- runModel(par=par, timeArr=timeArr, 
-                          C_bulk=C_bulk, dt=dt,
-                          allocationStr=allocationStr, ...,
+                          C_bulk=C_bulk, dt=dt, ...,
                           verbose=verbose)
+  if(verbose){print(head(modelOutput))}
+  if(sum(!names(modelOutput) %in% c('time', 'label')) > 1){
+    modelOutput$bulkC <- rowSums(modelOutput[,!names(modelOutput) %in% c('time', 'label')])
+  }else{
+    modelOutput$bulkC <- modelOutput[,!names(modelOutput) %in% c('time', 'label')]
+  }
   
   relNames <- sprintf('rel%s', names(relTime))
   for(nameStr in names(relTime)){
     modelOutput[,sprintf('rel%s', nameStr)] <- modelOutput[,nameStr]/modelOutput[which.min(abs(modelOutput$time - relTime[[nameStr]])), nameStr]
-  }
-  
-  if(sum(grepl('^C\\d+$', names(modelOutput))) > 1){
-    modelOutput$bulkC <- rowSums(modelOutput[,grepl('^C\\d+$', names(modelOutput))])
-  }else{
-    modelOutput$bulkC <- modelOutput$C1
   }
   
   modelOutput$CO2 <- C_bulk - modelOutput$bulkC
