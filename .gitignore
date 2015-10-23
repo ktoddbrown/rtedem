@@ -10,4 +10,5 @@ man/makeDecompMatrix.Rd
 
 vignettes/*_cache
 vignettes/*_files
-*.html
+vignettes/*.R
+vignettes/*.html
