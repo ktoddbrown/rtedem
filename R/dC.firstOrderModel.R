@@ -19,5 +19,7 @@ dC.firstOrderModel <- function(t, y, parms, tauStr='tau', transStr='A', verbose=
   assert_that(dim(Kmatrix)[1] == length(y))
   dim(y) <- c(dim(Kmatrix)[1], 1)
   if(verbose){cat('y:\n'); print(y)}
-  return(list(Kmatrix %*% y))
+  ans <- Kmatrix %*% y
+  names(ans) <- sprintf('C%d', 1:length(ans))
+  return(list(ans))
 }
