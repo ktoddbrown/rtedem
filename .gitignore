@@ -7,3 +7,7 @@ man/*
 man/makeDecompMatrix.Rd
 
 .Rbuildignore
+
+vignettes/*_cache
+vignettes/*_files
+*.html
