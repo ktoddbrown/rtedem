@@ -35,16 +35,19 @@ runModel <- function(par, timeArr, cModel=dC.firstOrderModel, C_bulk=1, dt=1,
   ans <- data.frame()
   for(labelStr in labelArr){
     
-    aN <- grepl(sprintf('^%s.?%s', labelStr, allocationStr), names(par))
+    aN <- grepl(sprintf('^(%s)?\\.?%s', labelStr, allocationStr), names(par))
     if(verbose){cat('aN:\n'); print(aN)}
     
     y0 <- C_bulk*par[aN]
     y0 <- c(y0, C_bulk-sum(y0))
+  
     names(y0) <- sprintf('C%d', 1:length(y0))
+    
     if(verbose) {cat('y0:\n'); print(y0)}
     if(verbose) {cat('parms:\n'); print(par)}
-    if(verbose) {cat('decayK:\n'); print(makeDecompMatrix(par, ...))}
+    #if(verbose) {cat('decayK:\n'); print(makeDecompMatrix(par, ...))}
     model <- as.data.frame(lsoda(y=y0, times=timeArr, func=cModel, parms=par, ...))
+    names(model) <- c('time', names(cModel(t=0, y0, par, ...)[[1]]))
     if(verbose) print(summary(model))
     #model <- data.frame(a=1)
     if(verbose) print(head(model))
