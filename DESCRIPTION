@@ -9,4 +9,4 @@ License: MIT + file LICENSE
 LazyData: TRUE
 Imports: assertthat, deSolve, plyr, reshape2
 Suggests: testthat, knitr, Matrix, ggplot2, FME
-#VignetteBuilder: knitr
+VignetteBuilder: knitr
