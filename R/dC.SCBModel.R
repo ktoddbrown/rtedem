@@ -16,7 +16,7 @@ dC.SCBModel <- function(t, y, parms,
                         rateFlags=list(enz=c('MM', 'revMM', 'multi')[1], uptake=c('MM', 'revMM')[1]),
                         verbose=FALSE){
   assert_that(all(c('simple', 'complex', 'biomass') %in% names(poolAssignment)))
-  assert_that(length(poolAssignment) == 3)
+  assert_that(length(y) == 3)
   S <-y[[poolAssignment$simple]]
   C <-y[[poolAssignment$complex]]
   B <- y[[poolAssignment$biomass]]

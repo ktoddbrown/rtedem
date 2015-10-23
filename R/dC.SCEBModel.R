@@ -18,6 +18,7 @@ dC.SCEBModel <- function(t, y, parms,
                          verbose=FALSE){
 
   assert_that(all(c('simple', 'complex', 'enzyme', 'biomass') %in% names(poolAssignment)))
+  assert_that(length(y) == 4)
   S <-y[[poolAssignment$simple]]
   C <-y[[poolAssignment$complex]]
   E <- y[[poolAssignment$enzyme]]
