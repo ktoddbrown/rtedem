@@ -1,17 +1,4 @@
----
-title: "Summary of models included in rtedem"
-author: "K Todd-Brown (ktoddbrown@gmail.com)"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Vignette Title}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
-
-There are several soil decomposition models already coded into *rtedem* including: CENTURY, TECO, CLM, and YASSO07.
-
-```{r}
+## ------------------------------------------------------------------------
 library(ggplot2)
 library(plyr)
 library(Matrix)
@@ -20,10 +7,8 @@ library(rtedem)
 codedParameters <- publishedParameters()
 
 minMaxBounds <- makeModelBounds(codedParameters)
-```
 
-
-```{r plotTurnover, fig.width=6}
+## ----plotTurnover, fig.width=6-------------------------------------------
 
 turnovers <- ldply(names(minMaxBounds), function(xx){
   ans <- minMaxBounds[[xx]][grepl('K', minMaxBounds[[xx]]$name),]
@@ -37,9 +22,8 @@ ggplot(turnovers) + geom_rect(aes(ymax=modelIndex+0.45, ymin=modelIndex-0.45, xm
   geom_point(aes(y=modelIndex, x=true/365)) + 
   scale_x_log10() + scale_y_continuous(breaks=yAxis$modelIndex, labels=yAxis$model) +
   labs(title='Comparison of turnover times', y='', x='time [yr]') + guides(fill=FALSE)
-```
 
-```{r}
+## ------------------------------------------------------------------------
 decayMatrix <- llply(codedParameters, function(xx){
   Turnover <- Matrix(diag(xx$tau/365))
   A <- matrix(data=0, nrow=dim(Turnover)[1], ncol=dim(Turnover)[2])
@@ -58,4 +42,4 @@ l_ply(names(codedParameters), function(xx){
   diag(A) <- -1
   print(decayMatrix[[xx]]$K %*% A)
 })
-```
+
