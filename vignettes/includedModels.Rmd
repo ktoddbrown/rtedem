@@ -59,3 +59,30 @@ l_ply(names(codedParameters), function(xx){
   print(decayMatrix[[xx]]$K %*% A)
 })
 ```
+
+```{r SCB}
+par <- unlist(list('v_enz'=1, 'km_enz'=0.1,
+                      'v_up'=1, 'km_up'=0.2,
+                       'cue'=0.7, 'basal' = 0.01,
+                       'turnover_b'=0.1,
+                       a1=0.1, a2=0.8))
+model <- runModel(par, timeArr= floor(2^(seq(0, 6, length=50))), cModel=dC.SCBModel)
+ggplot(melt(model, id.vars=c('time', 'label'))) + geom_line(aes(x=time, y=value,  color=variable)) + scale_x_log10()
+
+synData <- createSynData(par=par, timeArr=floor(2^(seq(0, 6, length=50))), cModel=dC.SCBModel)
+ggplot(synData) + geom_point(aes(x=time, y=mean, color=variable)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd, color=variable)) + scale_x_log10()
+```
+
+```{r SCEB}
+par <- unlist(list('v_enz'=1, 'km_enz'=0.1,
+                  'v_up'=1, 'km_up'=0.2,
+                  'enzProd'=0.01, 'enzCost'=0.75, 
+                  'cue'=0.7, 'basal' = 0.01,'turnover_e'=0.1,
+                  'turnover_b'=0.5, 
+                  a1=0.1, a2=0.7, a3=0.05))
+model <- runModel(par, timeArr= floor(2^(seq(0, 6, length=50))), cModel=dC.SCEBModel)
+ggplot(melt(model, id.vars=c('time', 'label'))) + geom_line(aes(x=time, y=value,  color=variable)) + scale_x_log10()
+
+synData <- createSynData(par=par, timeArr=floor(2^(seq(0, 6, length=50))), cModel=dC.SCEBModel)
+ggplot(synData) + geom_point(aes(x=time, y=mean, color=variable)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd, color=variable)) + scale_x_log10()
+```

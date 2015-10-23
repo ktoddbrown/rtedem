@@ -46,4 +46,12 @@ test_that("runModel runs a nonlinear model",{
               'turnover_b'=0.5, 'turnover_e'=0.1,
               a1=0.9, a2=0.01))
   test <- runModel(par=par, timeArr=2^seq(0, 10, length=50), cModel=dC.SCBModel)
+  
+  par <- unlist(list('v_enz'=0.2, 'km_enz'=10,
+                     'v_up'=1, 'km_up'=2,
+                     'enzProd'=0.01, 'enzCost'=0.75, 
+                     'cue'=0.5, 'basal' = 0.01,'turnover_e'=0.1,
+                     'turnover_b'=0.5,
+                     a1=0.8, a2=0.1, a3=0.05))
+  model <- runModel(par, timeArr= floor(2^(seq(0, 6, length=50))), cModel=dC.SCEBModel)
 })
