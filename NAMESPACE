@@ -2,6 +2,8 @@
 
 export(RMSE.measure)
 export(createSynData)
+export(dC.SCBModel)
+export(dC.SCEBModel)
 export(dC.firstOrderModel)
 export(ll.measure)
 export(makeDecompMatrix)
