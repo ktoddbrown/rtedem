@@ -13,8 +13,7 @@
 #' @import assertthat
 dC.SCBModel <- function(t, y, parms, 
                         poolAssignment = list(simple=1, complex=2, biomass=3),
-                        rateFlags=list(enz=c('MM', 'revMM', 'multi')[1], 
-                                       uptake=c('MM', 'revMM')[1]),
+                        rateFlags=list(enz=c('MM', 'revMM', 'multi')[1], uptake=c('MM', 'revMM')[1]),
                         verbose=FALSE){
   assert_that(all(c('simple', 'complex', 'biomass') %in% names(poolAssignment)))
   assert_that(length(poolAssignment) == 3)
@@ -29,30 +28,31 @@ dC.SCBModel <- function(t, y, parms,
                     'turnover_b') %in% names(parms)))
   
   if(grepl('^MM$', rateFlags$enz)){
-    enzCat <- parms$v_enz*C*B/(parms$km_enz+C)
+    enzCat <- parms['v_enz']*C*B/(parms['km_enz']+C)
   }else if(grepl('^revMM$', rateFlags$enz)){
-    enzCat <- parms$v_enz*C*B/(parms$km_enz+B)
+    enzCat <- parms['v_enz']*C*B/(parms['km_enz']+B)
   }else if(grepl('^multi$', rateFlags$enz)){
-    enzCat <- parms$v_enz*C*B
+    enzCat <- parms['v_enz']*C*B
   }else{
     stop(sprintf('Bad enzyme flag: %s',rateFlags$uptake) )
   }
   
   if(grepl('^MM$', rateFlags$uptake)){
-    uptake <- parms$v_up*S*B/(parms$km_up+S)
+    uptake <- parms['v_up']*S*B/(parms['km_up']+S)
   }else if(grepl('^revMM$', rateFlags$uptake)){
-    uptake <- parms$v_up*S*B/(parms$km_up+B)
+    uptake <- parms['v_up']*S*B/(parms['km_up']+B)
   }else{
     stop(sprintf('Bad uptake flag: %s',rateFlags$uptake) )
   }
   
-  dC <- -enzCat + parms$turnover_b*B
+  dC <- -enzCat + parms['turnover_b']*B
   dS <- enzCat - uptake
-  dB <- parms$cue*uptake - parms$turnover_b*B - parms$basal*B
+  dB <- parms['cue']*uptake - parms['turnover_b']*B - parms['basal']*B
   
-  dy <- list()
-  dy[[poolAssignment$simple]] <- dS
-  dy[[poolAssignment$complex]] <- dC
-  dy[[poolAssignment$biomass]] <- dB
-  return(dy)
+  dy <- rep(NA, length(y))
+  dy[poolAssignment$simple] <- dS
+  dy[poolAssignment$complex] <- dC
+  dy[poolAssignment$biomass] <- dB
+  names(dy)[unlist(poolAssignment)] <- names(poolAssignment)
+  return(list(dy))
 }
