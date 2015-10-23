@@ -53,7 +53,6 @@ makeModelBounds <- function(modelBase=publishedParameters(), verbose=FALSE){
                                               upper=-1*x$min[grepl('^K', x$name)]/365,
                                               pool=1:length(x$min[grepl('^K', x$name)]))})
     names(temp)[1] <- 'modelStr'
-    print(p)
   }
   return(ans)
 }
