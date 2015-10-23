@@ -15,18 +15,19 @@ test_that('dCSCBModel produces expected errors',{
   expect_error(dC.SCBModel())
   expect_error(dC.SCBModel(parms=list(not=1, real=2), t=1, y=c(1,1,1,1)))
   expect_error(dC.SCBModel(parms=list(not=1, real=2), t=1, y=1))
-  par <- list('v_enz'=0.2, 'km_enz'=10,
+  par <- unlist(list('v_enz'=0.2, 'km_enz'=10,
               'v_up'=1, 'km_up'=2,
               'cue'=0.5, 'basal' = 0.01,
-              'turnover_b'=0.5, 'turnover_e'=0.1)
+              'turnover_b'=0.5, 'turnover_e'=0.1))
   expect_error(dC.SCBModel(parms=par, t=1, y=1))
+  
 })
 
 test_that('dC.SCBModel produces correct outputs', {
-  par <- list('v_enz'=0.2, 'km_enz'=10,
+  par <- unlist(list('v_enz'=0.2, 'km_enz'=10,
                   'v_up'=1, 'km_up'=2,
                   'cue'=0.5, 'basal' = 0.01,
-                  'turnover_b'=0.5, 'turnover_e'=0.1)
+                  'turnover_b'=0.5, 'turnover_e'=0.1))
   ####compare prod=uptake
   test <- dC.SCBModel(parms=par, t=0, y=c(1,2,3), rateFlags=list(enz='MM', uptake='MM'))
   expect_true(all(abs(unlist(test) - c(-0.90,  1.40, -1.03)) < 1e-3))

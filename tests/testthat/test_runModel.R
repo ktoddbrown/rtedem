@@ -38,3 +38,12 @@ test_that("runModel correctly runs a one pool model",{
   expect_silent(modelOut <- runModel(par=unlist(list(tau1=180)), timeArr=2^seq(0, 10, length=50)))
   expect_true(all(abs(modelOut$C1-exp(-1/180*modelOut$time) ) < 1e-5))
 })
+
+test_that("runModel runs a nonlinear model",{
+  par <- unlist(list('v_enz'=0.2, 'km_enz'=10,
+              'v_up'=1, 'km_up'=2,
+              'cue'=0.5, 'basal' = 0.01,
+              'turnover_b'=0.5, 'turnover_e'=0.1,
+              a1=0.9, a2=0.01))
+  test <- runModel(par=par, timeArr=2^seq(0, 10, length=50), cModel=dC.SCBModel)
+})
