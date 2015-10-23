@@ -31,40 +31,41 @@ dC.SCEBModel <- function(t, y, parms,
                  'turnover_b', 'turnover_e') %in% names(parms)))
   
   if(grepl('^MM$', rateFlags$enz)){
-    enzCat <- parms$v_enz*C*E/(parms$km_enz+C)
+    enzCat <- parms['v_enz']*C*E/(parms['km_enz']+C)
   }else if(grepl('^revMM$', rateFlags$enz)){
-    enzCat <- parms$v_enz*C*E/(parms$km_enz+E)
+    enzCat <- parms['v_enz']*C*E/(parms['km_enz']+E)
   }else if(grepl('^multi$', rateFlags$enz)){
-    enzCat <- parms$v_enz*C*E
+    enzCat <- parms['v_enz']*C*E
   }else{
     stop('Bad enzyme flag.')
   }
   
   if(grepl('^Monod$', rateFlags$uptake)){
-    uptake <- parms$v_up*S*B/(parms$km_up+S)
+    uptake <- parms['v_up']*S*B/(parms['km_up']+S)
   }else{
     stop(sprintf('Bad uptake flag: %s',rateFlags$uptake) )
   }
   
   if(grepl('^uptake$', rateFlags$prod)){
-    enzProd <- parms$enzProd*uptake
+    enzProd <- parms['enzProd']*uptake
   }else if(grepl('^biomass$', rateFlags$prod)){
-    enzProd <- parms$enzProd*B
+    enzProd <- parms['enzProd']*B
   }else if(grepl('^const$', rateFlags$prod)){
-    enzProd <- parms$enzProd
+    enzProd <- parms['enzProd']
   }else{
     stop('Bad enzyme production flag.')
   }
   
-  dC <- -enzCat + parms$turnover_b*B + parms$turnover_e*E
+  dC <- -enzCat + parms['turnover_b']*B + parms['turnover_e']*E
   dS <- enzCat - uptake
-  dB <- parms$cue*uptake - (1+parms$enzCost)*enzProd - parms$turnover_b*B - parms$basal*B
-  dE <- enzProd - parms$turnover_e*E
+  dB <- parms['cue']*uptake - (1+parms['enzCost'])*enzProd - parms['turnover_b']*B - parms['basal']*B
+  dE <- enzProd - parms['turnover_e']*E
   
-  dy <- list()
-  dy[[poolAssignment$simple]] <- dS
-  dy[[poolAssignment$complex]] <- dC
-  dy[[poolAssignment$enzyme]] <- dB
-  dy[[poolAssignment$biomass]] <- dE
-  return(dy)
+  dy <- rep(NA, length(y))
+  dy[poolAssignment$simple] <- dS
+  dy[poolAssignment$complex] <- dC
+  dy[poolAssignment$enzyme] <- dE
+  dy[poolAssignment$biomass] <- dB
+  names(dy)[unlist(poolAssignment)] <- names(poolAssignment)
+  return(list(dy))
 }
