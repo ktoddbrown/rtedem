@@ -12,5 +12,5 @@ library(testthat)
 context("createSynData")
 
 test_that('createSynData does it run on a one pool model', {
-  synData <- createSynData(par=unlist(list(tau1=180)), timeArr=2^(seq(0, 10, length=50)))
+  expect_silent(synData <- createSynData(par=unlist(list(tau1=180)), timeArr=2^(seq(0, 10, length=50)), tauStr='tau'))
 })

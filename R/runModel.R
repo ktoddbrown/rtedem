@@ -7,9 +7,8 @@
 #' @param cModel function that accepts the par parameters and define the carbon model.
 #' @param C_bulk numeric total inital bulk carbon
 #' @param dt numeric defining the cap time to calculate the dCO2 flux
-#' @param tauStr string defining the regexp flagging the turnover times in par
-#' @param transStr string defining the regexp flagging the transfer propotions in par
 #' @param allocationStr string defining the allocation proportions in par
+#' @param ... passed to dC model in lsoda
 #' @param verbose boolean flag for extra error messages
 #'
 #' @return a data.frame with the time and values for the carbon pools and CO2
@@ -17,7 +16,7 @@
 #' @import deSolve assertthat
 #'
 runModel <- function(par, timeArr, cModel=dC.firstOrderModel, C_bulk=1, dt=1,
-                     tauStr='tau', transStr='transfer', allocationStr='a', verbose=FALSE){
+                     allocationStr='a', ..., verbose=FALSE){
   
   ##dummy check
   are_equal(class(par), 'numeric')
@@ -44,8 +43,8 @@ runModel <- function(par, timeArr, cModel=dC.firstOrderModel, C_bulk=1, dt=1,
     names(y0) <- sprintf('C%d', 1:length(y0))
     if(verbose) {cat('y0:\n'); print(y0)}
     if(verbose) {cat('parms:\n'); print(par)}
-    if(verbose) {cat('decayK:\n'); print(makeDecompMatrix(par, tauStr=tauStr, transStr=transStr))}
-    model <- as.data.frame(lsoda(y=y0, times=timeArr, func=cModel, parms=par, tauStr=tauStr, transStr=transStr))
+    if(verbose) {cat('decayK:\n'); print(makeDecompMatrix(par, ...))}
+    model <- as.data.frame(lsoda(y=y0, times=timeArr, func=cModel, parms=par, ...))
     if(verbose) print(summary(model))
     #model <- data.frame(a=1)
     if(verbose) print(head(model))

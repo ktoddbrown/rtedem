@@ -7,11 +7,8 @@
 #' @param verbose boolean for debuging statements
 #'
 #' @return matrix representing the decomposition rate
-#' @export
 #' @import assertthat
-#' 
-#' @examples
-#' makeDecompMatrix(unlist(list(tau1=10, tau2=100, A2=0.5)))
+#' @export
 makeDecompMatrix <- function(par, tauStr='tau', transStr='A', verbose=FALSE){
   assert_that(!is.null(names(par)))
   assert_that(any(grepl('tau', names(par))))

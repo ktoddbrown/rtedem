@@ -6,11 +6,10 @@
 #' @param timeArr numeric time points of interest
 #' @param C_bulk numeric scalar of inital bulk carbon
 #' @param dt numeric scalar 'cap' time for dCO2 calculation
-#' @param tauStr character string defining the turnover parameters in par
-#' @param transStr character string defining the transfer parameters in par
 #' @param allocationStr character string defining the allocation parameters in par
 #' @param relTime list of C pools to normalize and their associated normalization time points
 #' @param relSd.ls list of relative standard deviation to assign to dCO2 and relative C pools
+#' @param ... parameters to pass to runModel
 #' @param verbose print out useful debugging statetments
 #'
 #' @return a data.frame with synthetic data
@@ -19,10 +18,10 @@
 #' @examples
 #' synData <- createSynData(par=unlist(list('label1.a1'=0.1, tau1=180, tau2=10*365)), timeArr=2^(seq(0, 10, length=50)))
 #' print(head(synData))
-createSynData <- function(par, timeArr, C_bulk=1, dt=1, tauStr='tau', transStr='trans', allocationStr='a', relTime=list(), relSd.ls=list(dCO2=0.05, relC=0.1), verbose=FALSE){
+createSynData <- function(par, timeArr, C_bulk=1, dt=1, allocationStr='a', relTime=list(), relSd.ls=list(dCO2=0.05, relC=0.1), ..., verbose=FALSE){
   modelOutput <- runModel(par=par, timeArr=timeArr, 
                           C_bulk=C_bulk, dt=dt,
-                          tauStr=tauStr, transStr=transStr, allocationStr=allocationStr, 
+                          allocationStr=allocationStr, ...,
                           verbose=verbose)
   
   relNames <- sprintf('rel%s', names(relTime))
