@@ -15,5 +15,21 @@ context("measure.firstOrderModel")
 
 test_that('measure.firstOrderModel dummy checks', {
   expect_error(measure.firstOrderModel(par=c(1,2)))
-  expect_error(measure.first)
+  expect_error(measure.firstOrderModel())
+  
+})
+
+test_that('measure.firstOrderModel produces correct value',{
+  par <- unlist(list('label1.a1'=0.1, tau1=180, tau2=100*365))
+  
+  C_bulk <- 1
+  dt <- 1
+  tauStr <- 'tau'
+  transStr <- 'A'
+  allocationStr <- 'a'
+  
+  
+  
+  relTime <- list(C1=4)
+  temporalSplit <- c(10)
 })
