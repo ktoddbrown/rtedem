@@ -44,7 +44,7 @@ test <- dC.SCEADModel(parms=par, t=0, y=c(1,2,3,4, 5), rateFlags=list(enz='multi
    expect_true(all(abs(unlist(test) - c(-0.3151515,  0.5818182, -0.0900000, -0.6608333,  0.3000000 )) < 1e-3))
    
    test <- dC.SCEADModel(parms=par, t=0, y=c(1,2,3,4, 1), rateFlags=list(enz='revMM', uptake='Monod',  prod='biomass'))
-   expect_true(all(abs(unlist(test) - c(-1.241026,  2.207692, -0.260000, --2.643333,  1.200000 )) < 1e-3))
+   expect_true(all(abs(unlist(test) - c(-1.241026,  2.207692, -0.260000, -2.643333,  1.200000 )) < 1e-3))
    
    test <- dC.SCEADModel(parms=par, t=0, y=c(1,2,3,4, 1), rateFlags=list(enz='multi', uptake='Monod',  prod='biomass'))
    expect_true(all(abs(unlist(test) - c(-0.1333333,  1.1000000, -0.2600000, -2.6433333,  1.2000000 )) < 1e-3))
