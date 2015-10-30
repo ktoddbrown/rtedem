@@ -11,20 +11,24 @@
 #' @export
 #' @import assertthat
 dC.biomassModel <- function(t, y, parms, 
-                         poolAssignment = list(simple=1, complex=2, enzyme=3, biomass=4, dormant=5),
+                         poolAssignment = list(simple=1, complex=2, enzyme=3, biomass=4, dormant=5, protect_S=6, protect_C=7),
                          rateFlags=list(enz=c('MM', 'revMM', 'multi')[1], 
                                         uptake=c('Monod', 'MM', 'revMM')[1], 
-                                        prod=c('uptake', 'biomass', 'const')[1]),
+                                        prod=c('uptake', 'biomass', 'const')[1],
+                                        sorb=c('carbonCapacity')[1]),
                          verbose=FALSE){
 
   
-  assert_that(all(names(poolAssignment) %in% c('simple', 'complex', 'enzyme', 'biomass', 'dormant')))
+  assert_that(all(names(poolAssignment) %in% c('simple', 'complex', 'enzyme', 'biomass', 'dormant', 'protect_S', 'protect_C')))
+  cat()
+  assert_that(ifelse(all(c('protect_S', 'protect_C') %in% names(poolAssignment)), ('sorb' %in% names(rateFlags)), TRUE))
   assert_that(length(y) >= max(unlist(poolAssignment)))
   if(verbose) {print(names(parms))}
   assert_that(all(c('v_enz', c('km_enz')[grepl('MM', rateFlags$enz)],
                     'v_up', 'km_up','cue', 'basal', 'turnover_b', 
                     c('enzProd', 'enzCost', 'turnover_e')['enzyme' %in% names(poolAssignment)],
-                    c('dormancy_rate')['dormant' %in% names(poolAssignment)]) %in% names(parms)))
+                    c('dormancy_rate')['dormant' %in% names(poolAssignment)],
+                    c('sorb_rate', 'desorb_rate', 'carbonCapacity')[all(c('protect_S', 'protect_C') %in% names(poolAssignment))]) %in% names(parms)))
 
   assert_that(all(c('simple', 'complex', 'biomass') %in% names(poolAssignment)))
   S <-y[[poolAssignment$simple]]
@@ -32,6 +36,31 @@ dC.biomassModel <- function(t, y, parms,
   B <- y[[poolAssignment$biomass]]
   
   dy <- rep(NA, length(y))
+
+  if(all(c('protect_S', 'protect_C') %in% names(poolAssignment))){
+    if(verbose) cat('(De)sorbtion kinetics:')
+    if(grepl('^carryCapacity$', rateFlags$sorb)){
+      P_S <- y[[poolAssignment$protect_S]]
+      P_C <- y[[poolAssignment$protect_C]]
+      
+      dP_S <- S*parms['sorb_rate']*(1-(P_S+P_C)/parms['carbonCapacity']) - 
+              P_S*parms['desorb_rate']
+      
+      dP_C <- C*parms['sorb_rate']*(1-(P_S+P_C)/parms['carbonCapacity']) - 
+              P_C*parms['desorb_rate']
+        
+      dy[[poolAssignment$protect_C]] <- dP_C
+      dy[[poolAssignment$protect_S]] <- dP_S
+      
+      dC <- -dP_C
+      dS <- -dP_S
+    }else{
+      stop(sprintf('Bad sorb flag: %s',rateFlags$sorb) )
+    }
+  }else{
+    dC <- 0
+    dS <- 0
+  }
   
   if(verbose) cat('Uptake kinetics: ')
   if(grepl('^Monod$', rateFlags$uptake) | grepl('^MM$', rateFlags$uptake) ){
@@ -83,8 +112,8 @@ dC.biomassModel <- function(t, y, parms,
     stop('Bad enzyme flag.')
   }
   
-  dC <- -enzCat + parms['turnover_b']*B + Eturnover
-  dS <- enzCat - uptake
+  dC <- dC - enzCat + parms['turnover_b']*B + Eturnover
+  dS <- dS + enzCat - uptake
   dB <- parms['cue']*uptake - Ecost - parms['turnover_b']*B - parms['basal']*B
   
   if('dormant' %in% names(poolAssignment)){
