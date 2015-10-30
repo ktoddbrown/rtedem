@@ -2,9 +2,7 @@
 
 export(RMSE.measure)
 export(createSynData)
-export(dC.SCBModel)
-export(dC.SCEADModel)
-export(dC.SCEBModel)
+export(dC.biomassModel)
 export(dC.firstOrderModel)
 export(ll.measure)
 export(makeDecompMatrix)
