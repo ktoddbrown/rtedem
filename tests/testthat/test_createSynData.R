@@ -19,6 +19,6 @@ test_that('createSynData does it run on a one pool model', {
                       'cue'=0.5, 'basal' = 0.01,
                       'turnover_b'=0.5, 'turnover_e'=0.1,
                       a1=0.1, a2=0.8))
-   expect_silent(synData <- createSynData(par, timeArr=2^(seq(0, 10, length=50)), cModel=dC.SCBModel))
-   expect_silent(synData <- createSynData(par, timeArr=2^(seq(0, 10, length=50)), cModel=dC.SCBModel, relTime=list('biomass'=4)))
+   expect_silent(synData <- createSynData(par, timeArr=2^(seq(0, 10, length=50)), cModel=dC.biomassModel, poolAssignment=list(simple=1, complex=2, biomass=3)))
+   expect_silent(synData <- createSynData(par, timeArr=2^(seq(0, 10, length=50)), cModel=dC.biomassModel, relTime=list('biomass'=4), poolAssignment=list(simple=1, complex=2, biomass=3)))
 })
