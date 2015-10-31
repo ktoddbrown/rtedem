@@ -27,17 +27,17 @@ dC.biomassModel <- function(t=0, y, parms,
   assert_that(length(y) >= max(unlist(poolAssignment)))
   
   if(verbose) {print(names(parms))}
-  
-  if(!all(c(c('v_enz')['enz' %in% names(rateFlags)], 
-                  c('km_enz')['enz' %in% names(rateFlags) && grepl('MM', rateFlags$enz)],
-                  c('v_up', 'km_up','cue')[all(c('biomass', 'simple') %in% names(poolAssignment))],
-                  c('basal')['biomass' %in% names(poolAssignment)],
-                  c('turnover_b')[all(c('biomass', 'complex') %in% names(poolAssignment))],
-                  c('enzProd', 'enzCost')[all(c('enzyme', 'biomass') %in% names(poolAssignment))], 
-                  c('turnover_e')[all(c('enzyme', 'complex') %in% names(poolAssignment))],
-                  c('dormancy_rate')['dormant' %in% names(poolAssignment)],
-                  c('sorb_rate', 'desorb_rate', 'carbonCapacity')[all(c('protect_S', 'protect_C') %in% names(poolAssignment))]) %in% names(parms))){
-    stop(paste('Can not find all expected parameters. Expected [', paste( c(c('v_enz')['enz' %in% names(rateFlags)],  c('km_enz')['enz' %in% names(rateFlags) && grepl('MM', rateFlags$enz)], c('v_up', 'km_up','cue')[all(c('biomass', 'simple') %in% names(poolAssignment))], c('basal')['biomass' %in% names(poolAssignment)], c('turnover_b')[all(c('biomass', 'complex') %in% names(poolAssignment))], c('enzProd', 'enzCost')[all(c('enzyme', 'biomass') %in% names(poolAssignment))], c('turnover_e')[all(c('enzyme', 'complex') %in% names(poolAssignment))], c('dormancy_rate')['dormant' %in% names(poolAssignment)], c('sorb_rate', 'desorb_rate', 'carbonCapacity')[all(c('protect_S', 'protect_C') %in% names(poolAssignment))]), collapse=', '), ']. Found [', paste(names(parms), collapse=', '), ']' ))
+  targetParms <- c(c('v_enz')['enz' %in% names(rateFlags)], 
+                    c('km_enz')['enz' %in% names(rateFlags) && grepl('MM', rateFlags$enz)],
+                    c('v_up', 'km_up','cue')[all(c('biomass', 'simple') %in% names(poolAssignment))],
+                    c('basal')['biomass' %in% names(poolAssignment)],
+                    c('turnover_b')[all(c('biomass', 'complex') %in% names(poolAssignment))],
+                    c('enzProd', 'enzCost')[all(c('enzyme', 'biomass') %in% names(poolAssignment))], 
+                    c('turnover_e')[all(c('enzyme', 'complex') %in% names(poolAssignment))],
+                    c('dormancy_rate')['dormant' %in% names(poolAssignment)],
+                    c('sorb_rate', 'desorb_rate', 'carbonCapacity')[all(c('protect_S', 'protect_C') %in% names(poolAssignment))])
+  if(!all(targetParms %in% names(parms))){
+    stop(paste('Can not find all expected parameters. Expected [', paste( targetParms, collapse=', '), ']. Found [', paste(names(parms), collapse=', '), ']' ))
   }
 
   #assert_that(all(c('simple', 'complex', 'biomass') %in% names(poolAssignment)))
