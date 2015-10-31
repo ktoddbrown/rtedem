@@ -21,6 +21,10 @@ test_that('dCbiomassModel produces expected errors',{
               'turnover_b'=0.5, 'turnover_e'=0.1))
   expect_error(dC.biomassModel(parms=par, t=1, y=1))
   
+  par <- unlist(list('v_enz'=0.2, 'km_enz'=10, turnover_e=0.1))[1:2]
+  y0 <- unlist(list(simple=1, complex=2, enzyme=3))
+  poolAssignment <- list(simple=1, complex=2, enzyme=3)
+  expect_error(dC.biomassModel(parms=par, y=y0, rateFlags=list(enz='MM'), poolAssignment=poolAssignment))
 })
 
 test_that('dC.biomassModel returns correct enzyme kinetics',{
@@ -118,5 +122,34 @@ test_that('R/dC.biomassModel.R returns correct protection rates', {
 })
 
 test_that('dC.biomassModel does dormancy correctly',{
+  parms <- list('dormancy_rate'=0.1, 'basal'=0.2)
+  y0 <- list(biomass=1, dormant=4)
+  poolAssignment <- list(biomass=1, dormant=2)
   
+  expect_equal(unlist(dC.biomassModel(parms=unlist(parms), y=unlist(y0), rateFlags=list(), poolAssignment=poolAssignment)),
+               unlist(list(biomass=-y0$biomass*(parms$dormancy_rate+parms$basal),
+                           dormant=y0$biomass*parms$dormancy_rate)))
+  
+  y0 <- list(biomass=0, dormant=4)
+  expect_equal(unlist(dC.biomassModel(parms=unlist(parms), y=unlist(y0), rateFlags=list(), poolAssignment=poolAssignment)),
+               unlist(list(biomass=0,
+                           dormant=0)))
+})
+
+test_that('dC.biomassModel returns correct enzyme kinetics with biomass',{
+  parms <- list('v_enz'=0.2, 'km_enz'=10, v_up=0.1, km_up=5, turnover_b=0.1, basal=0.01, cue=0.75)
+  y0 <- list(simple=1, complex=2, biomass=3)
+  poolAssignment <- list(simple=1, complex=2, biomass=3)
+  
+  expect_equal(unlist(dC.biomassModel(parms=unlist(parms), y=unlist(y0), rateFlags=list(enz='MM', uptake='Monod'), poolAssignment=poolAssignment)),
+               unlist(list(simple=as.numeric(parms$v_enz*y0$complex*y0$biomass/(parms$km_enz+y0$complex) - parms$v_up*y0$simple*y0$biomass/(y0$simple+parms$km_up)), 
+                           complex=as.numeric(parms$turnover_b*y0$biomass-
+                                             parms$v_enz*y0$complex*y0$biomass/(parms$km_enz+y0$complex)), 
+                           biomass=as.numeric(parms$cue*parms$v_up*y0$simple*y0$biomass/(y0$simple+parms$km_up)-(parms$turnover_b+parms$basal)*y0$biomass))))
+
+  expect_equal(unlist(dC.biomassModel(parms=unlist(parms), y=unlist(y0), rateFlags=list(enz='revMM', uptake='Monod'), poolAssignment=poolAssignment)),
+               unlist(list(simple=as.numeric(parms$v_enz*y0$complex*y0$biomass/(parms$km_enz+y0$biomass) - parms$v_up*y0$simple*y0$biomass/(y0$simple+parms$km_up)), 
+                           complex=as.numeric(parms$turnover_b*y0$biomass-
+                                                parms$v_enz*y0$complex*y0$biomass/(parms$km_enz+y0$biomass)), 
+                           biomass=as.numeric(parms$cue*parms$v_up*y0$simple*y0$biomass/(y0$simple+parms$km_up)-(parms$turnover_b+parms$basal)*y0$biomass))))
 })
