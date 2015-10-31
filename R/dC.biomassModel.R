@@ -24,12 +24,10 @@ dC.biomassModel <- function(t=0, y, parms,
   assert_that(all(names(poolAssignment) %in% c('simple', 'complex', 'enzyme', 'biomass', 'dormant', 'protect_S', 'protect_C')))
   assert_that(ifelse('dormant' %in% names(poolAssignment), ('biomass' %in% names(poolAssignment)), TRUE))
   
-  assert_that(ifelse(all(c('protect_S', 'protect_C') %in% names(poolAssignment)), ('sorb' %in% names(rateFlags)), TRUE))
-  assert_that(ifelse('biomass' %in% names(poolAssignment), ifelse('simple' %in% names(poolAssignment), 'uptake' %in% names(rateFlags), TRUE) & ifelse('simple' %in% names(poolAssignment) & 'complex' %in% names(poolAssignment), 'enz' %in% names(rateFlags), TRUE), TRUE))
-  #assert_that(ifelse(all(c('complex', 'simple') %in% names(poolAssignment)), ifelse('enzyme' %in% names(poolAssignment), 'enz' %in% names(rateFlags), TRUE))
-  
   assert_that(length(y) >= max(unlist(poolAssignment)))
+  
   if(verbose) {print(names(parms))}
+  
   if(!all(c(c('v_enz')['enz' %in% names(rateFlags)], 
                   c('km_enz')['enz' %in% names(rateFlags) && grepl('MM', rateFlags$enz)],
                   c('v_up', 'km_up','cue')[all(c('biomass', 'simple') %in% names(poolAssignment))],
@@ -77,7 +75,7 @@ dC.biomassModel <- function(t=0, y, parms,
     ##enzyme production
     if('enzyme' %in% names(poolAssignment)){
       if(verbose) cat('Enzyme production: ')
-      if('prod' %in% names(rateFlags)){
+      if('biomass' %in% names(poolAssignment)){
         if(grepl('^uptake$', rateFlags$prod)){
           if(verbose) cat('proptional to uptake ')
           enzProd <- parms['enzProd']*uptake
