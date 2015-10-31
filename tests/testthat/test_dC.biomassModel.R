@@ -101,5 +101,22 @@ test_that('R/dC.biomassModel.R returns correct protection rates', {
   poolAssignment <- list(protect_C=1, complex=2)
   expect_equal(as.numeric(unlist(dC.biomassModel(parms=parms, y=y0, rateFlags=list( sorb='carryCapacity'), poolAssignment=list(protect_C=1, complex=2)))),
                as.numeric(unlist(dC.biomassModel(parms=parms, y=y0, rateFlags=list( sorb='carryCapacity'), poolAssignment=list(protect_S=1, simple=2)))))
+  
+  expect_equal(unlist(dC.biomassModel(parms=parms, y=y0, rateFlags=list( sorb='carryCapacity'), poolAssignment=poolAssignment)),
+               unlist(list(protect_C= as.numeric(y0['complex']*parms['sorb_rate']*(1-(y0['protect_C'])/parms['carbonCapacity']) - y0['protect_C']*parms['desorb_rate']), 
+                           complex= -as.numeric(y0['complex']*parms['sorb_rate']*(1-(y0['protect_C'])/parms['carbonCapacity']) - y0['protect_C']*parms['desorb_rate'])
+               )))
+  
+  y0 <- unlist(list(protect_C=1, complex=4, protect_S=1, simple=3))
+  poolAssignment <- list(protect_C=1, complex=2, protect_S=3, simple=4)
+  expect_equal(unlist(dC.biomassModel(parms=parms, y=y0, rateFlags=list( sorb='carryCapacity'), poolAssignment=poolAssignment)),
+               unlist(list(protect_C= as.numeric(y0['complex']*parms['sorb_rate']*(1-(y0['protect_C']+y0['protect_S'])/parms['carbonCapacity']) - y0['protect_C']*parms['desorb_rate']), 
+                           complex= -as.numeric(y0['complex']*parms['sorb_rate']*(1-(y0['protect_C']+y0['protect_S'])/parms['carbonCapacity']) - y0['protect_C']*parms['desorb_rate']),
+                           protect_S=as.numeric(y0['simple']*parms['sorb_rate']*(1-(y0['protect_C']+y0['protect_S'])/parms['carbonCapacity']) - y0['protect_S']*parms['desorb_rate']),
+                           simple= -as.numeric(y0['simple']*parms['sorb_rate']*(1-(y0['protect_C']+y0['protect_S'])/parms['carbonCapacity']) - y0['protect_S']*parms['desorb_rate'])
+               )))
 })
 
+test_that('dC.biomassModel does dormancy correctly',{
+  
+})
