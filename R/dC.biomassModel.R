@@ -1,11 +1,11 @@
-#' Change in carbon pools for a biomass decay model
+#' Change in carbon pools for a microbial explicit model
 #'
-#' This models can have up to 7 pools in it including simple, complex, enzyme, biomass, dormant biomass, protected simple, and protected complex pools. Required are simple, complex and biomass.
+#' This models can have up to 7 pools in it including simple, complex, enzyme, biomass, dormant biomass, protected simple, and protected complex pools. 
 #'
 #' @param t numeric time (ignored)
 #' @param y numeric carbon pools
 #' @param parms list of named parameters
-#' @param poolAssignment list of named pool indecies, only simple, complex and biomass pools are required to be defined.
+#' @param poolAssignment list of named pool indecies.
 #' @param rateFlags list of strings selecting rate options. Options are listed in defaults.
 #' @param verbose logical flag to give useful debug statements
 #' 
@@ -40,8 +40,6 @@ dC.biomassModel <- function(t=0, y, parms,
     stop(paste('Can not find all expected parameters. Expected [', paste( targetParms, collapse=', '), ']. Found [', paste(names(parms), collapse=', '), ']' ))
   }
 
-  #assert_that(all(c('simple', 'complex', 'biomass') %in% names(poolAssignment)))
-  
   dy <- rep(NA, length(y))
   if('biomass' %in% names(poolAssignment)) {B <- y[[poolAssignment$biomass]]; dB <- 0}
   if('enzyme' %in% names(poolAssignment)) {E <- y[[poolAssignment$enzyme]]; dE <- 0}
