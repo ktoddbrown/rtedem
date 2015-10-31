@@ -30,7 +30,7 @@ dC.biomassModel <- function(t=0, y, parms,
   
   assert_that(length(y) >= max(unlist(poolAssignment)))
   if(verbose) {print(names(parms))}
-  assert_that(all(c(c('v_enz')['enz' %in% names(rateFlags)], 
+  if(!all(c(c('v_enz')['enz' %in% names(rateFlags)], 
                   c('km_enz')['enz' %in% names(rateFlags) && grepl('MM', rateFlags$enz)],
                   c('v_up', 'km_up','cue')[all(c('biomass', 'simple') %in% names(poolAssignment))],
                   c('basal')['biomass' %in% names(poolAssignment)],
@@ -38,7 +38,9 @@ dC.biomassModel <- function(t=0, y, parms,
                   c('enzProd', 'enzCost')[all(c('enzyme', 'biomass') %in% names(poolAssignment))], 
                   c('turnover_e')[all(c('enzyme', 'complex') %in% names(poolAssignment))],
                   c('dormancy_rate')['dormant' %in% names(poolAssignment)],
-                  c('sorb_rate', 'desorb_rate', 'carbonCapacity')[all(c('protect_S', 'protect_C') %in% names(poolAssignment))]) %in% names(parms)))
+                  c('sorb_rate', 'desorb_rate', 'carbonCapacity')[all(c('protect_S', 'protect_C') %in% names(poolAssignment))]) %in% names(parms))){
+    stop(paste('Can not find all expected parameters. Expected [', paste( c(c('v_enz')['enz' %in% names(rateFlags)],  c('km_enz')['enz' %in% names(rateFlags) && grepl('MM', rateFlags$enz)], c('v_up', 'km_up','cue')[all(c('biomass', 'simple') %in% names(poolAssignment))], c('basal')['biomass' %in% names(poolAssignment)], c('turnover_b')[all(c('biomass', 'complex') %in% names(poolAssignment))], c('enzProd', 'enzCost')[all(c('enzyme', 'biomass') %in% names(poolAssignment))], c('turnover_e')[all(c('enzyme', 'complex') %in% names(poolAssignment))], c('dormancy_rate')['dormant' %in% names(poolAssignment)], c('sorb_rate', 'desorb_rate', 'carbonCapacity')[all(c('protect_S', 'protect_C') %in% names(poolAssignment))]), collapse=', '), ']. Found [', paste(names(parms), collapse=', '), ']' ))
+  }
 
   #assert_that(all(c('simple', 'complex', 'biomass') %in% names(poolAssignment)))
   
@@ -96,17 +98,21 @@ dC.biomassModel <- function(t=0, y, parms,
     
     ##dormancy
     if('dormant' %in% names(poolAssignment)){
-      if(verbose) cat('Dormancy\n')
-      if(dB < 0 & dB < B){
+      if(verbose) cat('Dormancy ')
+      if(dB <= 0 & dB < B){
+        if(verbose) cat('sleep microbes ')
         dD <- parms['dormancy_rate']*B
         if(dD-dB > B){
+          if(verbose) cat('to cap ')
           dD <- B+dB
         }
       }
       
-      if(dB >= 0){
+      if(dB > 0){
+        if(verbose) cat('wake microbes ')
         dD <- -1*parms['dormancy_rate']*D
       }
+      if(verbose) cat('dD: ', dD, '\n')
       dB <- dB - dD
     }
     
