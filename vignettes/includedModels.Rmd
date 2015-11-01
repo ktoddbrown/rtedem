@@ -107,8 +107,23 @@ par <- list(v_enz=5, km_enz=2,
                 enzProd=0.01, enzCost=1, 
                 turnover_e=0.005,
                 dormancy_rate=0.01,
-                sorb_rate=0.01, desorb_rate=0.001, carbonCapacity=5)
-pools <- list(simple=0.1, dormant=10, biomass=1, enzyme=0.01, protect_S=1, protect_C=3,  complex=10)
+                sorb_rate=0.01, desorb_rate=0.01, carbonCapacity=50)
+pools <- list(protect_S=3, protect_C=3)
+##Assume dP_C and dP_S are equal to 0
+pools$complex <- par$desorb_rate/par$sorb_rate*(1/pools$protect_C-1/par$carbonCapacity)^-1
+pools$simple <- par$desorb_rate/par$sorb_rate*(1/pools$protect_S-1/par$carbonCapacity)^-1
+
+##Assume dB equal to 0
+pools$biomass <- pools$simple*par$v_up*(par$cue) - 
+                      par$km_up*(par$basal+par$turnover_b)
+
+##Assume most of microbes are dormant
+##TODO dormancy seems to destablize model, not sure what's up with this
+#pools$dormant <- pools$biomass*10
+
+##Assume that enzymes should be proportional to biomass
+pools$enzyme <- pools$biomass*par$enzProd
+
 totalC <- sum(unlist(pools))
 #poolIndex <- list(simple=1, dormant=2, protect_S=3, protect_C=4, biomass=5, enzyme=6, complex=7)
 poolIndex <- lapply(names(pools), function(xx){which(names(pools) %in% xx)})
