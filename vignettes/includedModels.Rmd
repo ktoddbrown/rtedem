@@ -99,6 +99,30 @@ ggplot(CO2Outs) + geom_line(aes(x=time/365, y=mean, color=model)) + geom_errorba
 
 In addition to the traditional first order linear models above there is also a microbial explicit model (MEM).
 
+```{r helperFun}
+makePlots <- function(par, pools, timeArr=10^seq(-1, 0, length=20)*365){
+  totalC <- sum(unlist(pools))
+  #poolIndex <- list(simple=1, dormant=2, protect_S=3, protect_C=4, biomass=5, enzyme=6, complex=7)
+  poolIndex <- lapply(names(pools), function(xx){which(names(pools) %in% xx)})
+  names(poolIndex) <- names(pools)
+  
+  parFull <- (unlist(pools)/totalC)[-max(unlist(poolIndex))]
+  names(parFull) <- sprintf('a%d', 1:(length(parFull)))
+  parFull <- c(unlist(par), parFull)
+  
+  poolOuts <- runModel(par=parFull, timeArr=timeArr, cModel=dC.biomassModel, C_bulk=totalC, dt=1, poolAssignment=poolIndex, rateFlags=list(enz='MM', uptake='MM', prod='uptake', sorb='carryCapacity'), allocationStr='a')
+  poolOuts <- melt(poolOuts, id.vars=c('time', 'label'))
+  ans <- list(pools = ggplot(poolOuts) + geom_line(aes(x=time, y=value))  + scale_x_log10() + labs(title='Carbon pools', x='time [day]', y='C stock')+ facet_wrap(~variable, scales='free'))
+  
+  CO2Outs <- createSynData(par=parFull, timeArr=timeArr, cModel=dC.biomassModel, C_bulk=totalC, dt=1, poolAssignment=poolIndex, rateFlags=list(enz='MM', uptake='MM', prod='uptake', sorb='carryCapacity'), allocationStr='a')
+  
+  ans$CO2 <- ggplot(CO2Outs) + geom_line(aes(x=time, y=mean)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd)) + scale_x_log10() +  labs(title='Synthetic respiration', x='time [day]', y='CO2 flux [g CO2-C g^-1 soil-C day^-1]')
+  
+  return(ans)
+}
+
+```
+
 ```{r}
 par <- list(v_enz=5, km_enz=2,
                 v_up=1, km_up=1, cue=0.75,
@@ -123,20 +147,36 @@ pools$biomass <- pools$simple*par$v_up*(par$cue) -
 
 ##Assume that enzymes should be proportional to biomass
 pools$enzyme <- pools$biomass*par$enzProd
-
-totalC <- sum(unlist(pools))
-#poolIndex <- list(simple=1, dormant=2, protect_S=3, protect_C=4, biomass=5, enzyme=6, complex=7)
-poolIndex <- lapply(names(pools), function(xx){which(names(pools) %in% xx)})
-names(poolIndex) <- names(pools)
-parFull <- (unlist(pools)/totalC)[-max(unlist(poolIndex))]
-names(parFull) <- sprintf('a%d', 1:(length(parFull)))
-parFull <- c(unlist(par), parFull)
-
-poolOuts <- runModel(par=parFull, timeArr=10^seq(-1, 2, by=0.1)*365, cModel=dC.biomassModel, C_bulk=totalC, dt=1, poolAssignment=poolIndex, rateFlags=list(enz='MM', uptake='MM', prod='uptake', sorb='carryCapacity'), allocationStr='a')
-poolOuts <- melt(poolOuts, id.vars=c('time', 'label'))
-ggplot(poolOuts) + geom_line(aes(x=time/365, y=value))  + scale_x_log10() + labs(title='Young carbon pools', x='time [year]', y='C stock')+ facet_wrap(~variable, scales='free')
-
-CO2Outs <- createSynData(par=parFull, timeArr=10^seq(-1, 2, by=0.1)*365, cModel=dC.biomassModel, C_bulk=totalC, dt=1, poolAssignment=poolIndex, rateFlags=list(enz='MM', uptake='MM', prod='uptake', sorb='carryCapacity'), allocationStr='a')
-
-ggplot(CO2Outs) + geom_line(aes(x=time/365, y=mean)) + geom_errorbar(aes(x=time/365, ymin=mean-sd, ymax=mean+sd)) + scale_x_log10() +  labs(title='Expected respiration', x='time [year]', x='CO2 flux [g CO2-C g^-1 soil-C day^-1]')
 ```
+
+
+Run a simple enzyme decomposition model
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'enzyme')])
+temp$pools
+```
+
+Run a simple biomass explicit decomposition model
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'biomass')])
+temp$pools; temp$CO2
+```
+
+Run biomass+enzyme decomposition model
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'biomass', 'enzyme')])
+temp$pools; temp$CO2
+```
+
+Run the sorption/desorption submodel
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'protect_C', 'protect_S')])
+temp$pools
+```
+
+Run full biomass+enzyme with sorption/desorption model
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'biomass', 'enzyme', 'protect_C', 'protect_S')])
+temp$pools; temp$CO2
+```
+
