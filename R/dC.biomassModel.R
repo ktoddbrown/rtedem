@@ -34,7 +34,7 @@ dC.biomassModel <- function(t=0, y, parms,
                     c('turnover_b')[all(c('biomass', 'complex') %in% names(poolAssignment))],
                     c('enzProd', 'enzCost')[all(c('enzyme', 'biomass') %in% names(poolAssignment))], 
                     c('turnover_e')[all(c('enzyme', 'complex') %in% names(poolAssignment))],
-                    c('dormancy_rate')['dormant' %in% names(poolAssignment)],
+                    c('dormancy_rate', 'S_dormancy')['dormant' %in% names(poolAssignment)],
                     c('sorb_rate', 'desorb_rate', 'carbonCapacity')[all(c('protect_S', 'protect_C') %in% names(poolAssignment))])
   if(!all(targetParms %in% names(parms))){
     stop(paste('Can not find all expected parameters. Expected [', paste( targetParms, collapse=', '), ']. Found [', paste(names(parms), collapse=', '), ']' ))
@@ -92,26 +92,6 @@ dC.biomassModel <- function(t=0, y, parms,
       }
     }
     
-    ##dormancy
-    if('dormant' %in% names(poolAssignment)){
-      if(verbose) cat('Dormancy ')
-      if(dB <= 0 & dB < B){
-        if(verbose) cat('sleep microbes ')
-        dD <- parms['dormancy_rate']*B
-        if(dD-dB > B){
-          if(verbose) cat('to cap ')
-          dD <- B+dB
-        }
-      }
-      
-      if(dB > 0){
-        if(verbose) cat('wake microbes ')
-        dD <- -1*parms['dormancy_rate']*D
-      }
-      if(verbose) cat('dD: ', dD, '\n')
-      dB <- dB - dD
-    }
-    
     ##necromass
     if('complex' %in% names(poolAssignment)){
       if(verbose) cat('Death: ', parms['turnover_b']*B, '\n')
@@ -122,7 +102,26 @@ dC.biomassModel <- function(t=0, y, parms,
     ##maintaince respiration
     if(verbose) cat('Maintance resp: ', parms['basal']*B, '\n')
     dB <- dB - parms['basal']*B
-  }
+    
+    ##dormancy
+    ##Yuji He: substrate level drive w/ linear proportionality
+    if('dormant' %in% names(poolAssignment)){
+      if(verbose) cat('Dormancy ')
+      if(S <= parms['S_dormancy']){
+        if(verbose) cat('sleep microbes ')
+        dD <- parms['dormancy_rate']*B
+      }
+      
+      if(S > parms['S_dormancy']){
+        if(verbose) cat('wake microbes ')
+        dD <- -1*parms['dormancy_rate']*D
+      }
+      if(verbose) cat('dD: ', dD, '\n')
+      dB <- dB - dD
+    }
+    
+    
+  } #end biomass if
   
   ##Deal with enzyme turnover
   if(all(c('enzyme', 'complex') %in% names(poolAssignment))){

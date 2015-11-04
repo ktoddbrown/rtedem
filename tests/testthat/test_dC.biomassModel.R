@@ -122,18 +122,20 @@ test_that('R/dC.biomassModel.R returns correct protection rates', {
 })
 
 test_that('dC.biomassModel does dormancy correctly',{
-  parms <- list('dormancy_rate'=0.1, 'basal'=0.2)
-  y0 <- list(biomass=1, dormant=4)
-  poolAssignment <- list(biomass=1, dormant=2)
+  parms <- list('dormancy_rate'=0.1, 'S_dormancy'=0.1,'basal'=0.2, 'v_up' = 0.2, 'km_up' = 10, basal=0.01, cue=0.8)
+  y0 <- list(biomass=1, dormant=4, simple=0)
+  poolAssignment <- list(biomass=1, dormant=2, simple=3)
   
-  expect_equal(unlist(dC.biomassModel(parms=unlist(parms), y=unlist(y0), rateFlags=list(), poolAssignment=poolAssignment)),
+  expect_equal(unlist(dC.biomassModel(parms=unlist(parms), y=unlist(y0), rateFlags=list(uptake='MM'), poolAssignment=poolAssignment)),
                unlist(list(biomass=-y0$biomass*(parms$dormancy_rate+parms$basal),
-                           dormant=y0$biomass*parms$dormancy_rate)))
+                           dormant=y0$biomass*parms$dormancy_rate,
+                           simple=0)))
   
-  y0 <- list(biomass=0, dormant=4)
-  expect_equal(unlist(dC.biomassModel(parms=unlist(parms), y=unlist(y0), rateFlags=list(), poolAssignment=poolAssignment)),
-               unlist(list(biomass=0,
-                           dormant=0)))
+  y0 <- list(biomass=0, dormant=4, substrate=1)
+  expect_equal(unlist(dC.biomassModel(parms=unlist(parms), y=unlist(y0), rateFlags=list(uptake='MM'), poolAssignment=poolAssignment)),
+               unlist(list(biomass=y0$dormant*parms$dormancy_rate,
+                           dormant=-y0$dormant*parms$dormancy_rate,
+                           simple=0)))
 })
 
 test_that('dC.biomassModel returns correct enzyme kinetics with biomass',{
