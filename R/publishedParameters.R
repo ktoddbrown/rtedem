@@ -41,7 +41,10 @@ publishedParameters <- function(nameArr = NULL){
                                         0.004,     0.03)),
                  type=c('litter-metabolic', 'litter-surfaceStructure', 'litter-belowStructure', 
                         'soil-active', 'soil-slow', 'soil-passive'),
-                 citation='http://dx.doi.org/10.2136/sssaj1987.03615995005100050015x'))
+                 citation='http://dx.doi.org/10.2136/sssaj1987.03615995005100050015x')
+    
+    
+    )##end ans <- list()
   
   if(!is.null(nameArr)){
     ans <- ans[[intersect(nameArr, names(ans))]]
