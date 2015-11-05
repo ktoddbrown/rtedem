@@ -9,7 +9,9 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-There are several soil decomposition models already coded into *rtedem* including: CENTURY, TECO, CLM, and YASSO07.
+*rtedem* is designed to allow for easy terrestrial decomposition data-model integration.
+There are several soil decomposition models already coded including: CENTURY, TECO, CLM, and YASSO07.
+Also included is a flexible microbial explicit model (MEM) which has microbial growth and metabolism, extracellular enzyme kinetics, microbial dormancy, and physical protection of organic carbon. Currently this is a single community model and does not take into account microbial or substrate heterogeneity (beyond a complex and simple carbon pool).
 
 ```{r}
 library(ggplot2)
@@ -17,17 +19,12 @@ library(reshape2)
 library(plyr)
 library(Matrix)
 library(rtedem)
-#library(assertthat)
-#source('../R/dC.biomassModel.R')
-
-codedParameters <- publishedParameters()
-
-minMaxBounds <- makeModelBounds(codedParameters)
 ```
 
-
+Traditional soil decomposition models have multiple pools binned by soil quality with a range of decomposition rates.
 ```{r plotTurnover, fig.width=6}
-
+codedParameters <- publishedParameters()
+minMaxBounds <- makeModelBounds(codedParameters)
 turnovers <- ldply(names(minMaxBounds), function(xx){
   ans <- minMaxBounds[[xx]][grepl('K', minMaxBounds[[xx]]$name),]
   ans[,c('true', 'min', 'max')] <- ans[,c('true', 'min', 'max')] * -1
@@ -42,6 +39,7 @@ ggplot(turnovers) + geom_rect(aes(ymax=modelIndex+0.45, ymin=modelIndex-0.45, xm
   labs(title='Comparison of turnover times', y='', x='time [yr]') + guides(fill=FALSE)
 ```
 
+Mathematically this can be expressed as $dC=A*K*C$ where C is the carbon pools, $A$ the transfers between those pools, and $K$ the decay rate of the pools.
 ```{r}
 decayMatrix <- llply(codedParameters, function(xx){
   Turnover <- Matrix(diag(xx$tau/365))
@@ -49,12 +47,18 @@ decayMatrix <- llply(codedParameters, function(xx){
   A[as.numeric(gsub('A', '', xx$trans$name))] <- xx$trans$val
   return(list(turnover = Turnover, transfer=Matrix(A), K=Matrix(diag(1/(xx$tau/365)))))
 })
+```
 
+For the published models coded in this package the transfer matricies are:
+```{r}
 l_ply(names(codedParameters), function(xx){
   #cat(xx,' turnover [year]:\n');print(decayMatrix[[xx]]$turnover)
   cat(xx, ' transfer Matrix:\n');print(decayMatrix[[xx]]$transfer)
 })
+```
 
+And associated decay matricies are:
+```{r}
 l_ply(names(codedParameters), function(xx){
   cat(xx, 'decay Matrix (1/tau*transfer):\n')
   A <- decayMatrix[[xx]]$transfer
@@ -63,29 +67,121 @@ l_ply(names(codedParameters), function(xx){
 })
 ```
 
-```{r SCB}
-par <- unlist(list('v_enz'=1, 'km_enz'=0.1,
-                      'v_up'=1, 'km_up'=0.2,
-                       'cue'=0.7, 'basal' = 0.01,
-                       'turnover_b'=0.1,
-                       a1=0.1, a2=0.8))
-model <- runModel(par, timeArr= floor(2^(seq(0, 6, length=50))), cModel=dC.biomassModel, poolAssignment=list(simple=1, complex=2, biomass=3))
-ggplot(melt(model, id.vars=c('time', 'label'))) + geom_line(aes(x=time, y=value,  color=variable)) + scale_x_log10()
+This results in the following model predictions assuming that 20\% of the carbon is split equally between the 'young' pools.
 
-synData <- createSynData(par=par, timeArr=floor(2^(seq(0, 6, length=50))), cModel=dC.biomassModel, poolAssignment=list(simple=1, complex=2, biomass=3))
-ggplot(synData) + geom_point(aes(x=time, y=mean, color=variable)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd, color=variable)) + scale_x_log10()
+```{r plotFirstOrder, cache=TRUE}
+poolOuts <- ldply(names(codedParameters), function(modelStr){
+  numPools <- length(codedParameters[[modelStr]]$tau)
+  par <- c(codedParameters[[modelStr]]$tau/365, codedParameters[[modelStr]]$trans$val, rep(0.2/(numPools-1), length=numPools-1))
+  names(par) <- c(paste('tau', 1:numPools, sep=''), codedParameters[[modelStr]]$trans$name, paste('a', 1:(numPools-1), sep=''))
+  
+  temp <- runModel(par=par, timeArr=10^seq(-1, 2, by=0.1), cModel=dC.firstOrderModel, C_bulk=1, dt=1/365, allocationStr='a')
+  temp$model <- modelStr
+  return(temp)
+})
+poolOuts <- melt(poolOuts, id.vars=c('time', 'label', 'model'))
+ggplot(poolOuts) + geom_line(aes(x=time, y=value, color=variable, group=paste(model, variable))) + facet_wrap(~model) + scale_x_log10() + ylim(c(0, 0.1)) + labs(title='Young carbon pools', y='time [year]', x='C stock')
+
+CO2Outs <- ldply(names(codedParameters), function(modelStr){
+  numPools <- length(codedParameters[[modelStr]]$tau)
+  par <- c(codedParameters[[modelStr]]$tau, codedParameters[[modelStr]]$trans$val, rep(0.2/(numPools-1), length=numPools-1))
+  names(par) <- c(paste('tau', 1:numPools, sep=''), codedParameters[[modelStr]]$trans$name, paste('a', 1:(numPools-1), sep=''))
+  
+  temp <- createSynData(par=par, timeArr=10^seq(-1, 2, by=0.1), cModel=dC.firstOrderModel, C_bulk=1, dt=1, allocationStr='a')
+  temp$model <- modelStr
+  return(temp)
+})
+
+ggplot(CO2Outs) + geom_line(aes(x=time/365, y=mean, color=model)) + geom_errorbar(aes(x=time/365, ymin=mean-sd, ymax=mean+sd, color=model)) + scale_x_log10() +  labs(title='Expected respiration', x='time [year]', x='CO2 flux [g CO2-C g^-1 soil-C day^-1]')
+
 ```
 
-```{r SCEB}
-par <- unlist(list('v_enz'=1, 'km_enz'=0.1,
-                  'v_up'=1, 'km_up'=0.2,
-                  'enzProd'=0.01, 'enzCost'=0.75, 
-                  'cue'=0.7, 'basal' = 0.01,'turnover_e'=0.1,
-                  'turnover_b'=0.5, 
-                  a1=0.1, a2=0.7, a3=0.05))
-model <- runModel(par, timeArr= floor(2^(seq(0, 6, length=50))), cModel=dC.biomassModel, poolAssignment=list(simple=1, complex=2, enzyme=3, biomass=4))
-ggplot(melt(model, id.vars=c('time', 'label'))) + geom_line(aes(x=time, y=value,  color=variable)) + scale_x_log10()
+In addition to the traditional first order linear models above there is also a microbial explicit model (MEM).
 
-synData <- createSynData(par=par, timeArr=floor(2^(seq(0, 6, length=50))), cModel=dC.biomassModel, poolAssignment=list(simple=1, complex=2, enzyme=3, biomass=4))
-ggplot(synData) + geom_point(aes(x=time, y=mean, color=variable)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd, color=variable)) + scale_x_log10()
+```{r helperFun}
+makePlots <- function(par, pools, timeArr=10^seq(-1, 0, length=20)*365){
+  totalC <- sum(unlist(pools))
+  #poolIndex <- list(simple=1, dormant=2, protect_S=3, protect_C=4, biomass=5, enzyme=6, complex=7)
+  poolIndex <- lapply(names(pools), function(xx){which(names(pools) %in% xx)})
+  names(poolIndex) <- names(pools)
+  
+  parFull <- (unlist(pools)/totalC)[-max(unlist(poolIndex))]
+  names(parFull) <- sprintf('a%d', 1:(length(parFull)))
+  parFull <- c(unlist(par), parFull)
+  
+  poolOuts <- runModel(par=parFull, timeArr=timeArr, cModel=dC.biomassModel, C_bulk=totalC, dt=1, poolAssignment=poolIndex, rateFlags=list(enz='MM', uptake='MM', prod='uptake', sorb='carryCapacity'), allocationStr='a')
+  poolOuts <- melt(poolOuts, id.vars=c('time', 'label'))
+  ans <- list(pools = ggplot(poolOuts) + geom_line(aes(x=time, y=value))  + labs(title='Carbon pools', x='time [day]', y='C stock')+ facet_wrap(~variable, scales='free'))
+  
+  CO2Outs <- createSynData(par=parFull, timeArr=timeArr, cModel=dC.biomassModel, C_bulk=totalC, dt=1, poolAssignment=poolIndex, rateFlags=list(enz='MM', uptake='MM', prod='uptake', sorb='carryCapacity'), allocationStr='a')
+  
+  ans$CO2 <- ggplot(CO2Outs) + geom_line(aes(x=time, y=mean)) + geom_errorbar(aes(x=time, ymin=mean-sd, ymax=mean+sd)) +  labs(title='Synthetic respiration', x='time [day]', y='CO2 flux [g CO2-C g^-1 soil-C day^-1]')
+  
+  return(ans)
+}
+
 ```
+
+```{r setUpNonlinearModel}
+par <- list(v_enz=5, km_enz=2,
+                v_up=1, km_up=1, cue=0.75,
+                basal=0.1,
+                turnover_b=0.05,
+                enzProd=0.01, enzCost=1, 
+                turnover_e=0.005,
+                dormancy_rate=1e-3, S_dormancy=0.1,
+                sorb_rate=0.01, desorb_rate=0.01, carbonCapacity=50)
+pools <- list(protect_S=0.3, protect_C=3)
+##Assume dP_C and dP_S are equal to 0
+pools$complex <- par$desorb_rate/par$sorb_rate*(1/pools$protect_C-1/par$carbonCapacity)^-1
+pools$simple <- par$desorb_rate/par$sorb_rate*(1/pools$protect_S-1/par$carbonCapacity)^-1
+
+##Assume dB equal to 0
+pools$biomass <- pools$simple*par$v_up*(par$cue) - 
+                      par$km_up*(par$basal+par$turnover_b)
+
+##Assume most of microbes are dormant
+##TODO dormancy seems to destablize model, not sure what's up with this
+pools$dormant <- pools$biomass*10
+
+##Assume that enzymes should be proportional to biomass
+pools$enzyme <- pools$biomass*par$enzProd
+```
+
+
+Run a simple enzyme decomposition model
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'enzyme')])
+temp$pools
+```
+
+Run a simple biomass explicit decomposition model
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'biomass')])
+temp$pools; temp$CO2
+```
+
+Run biomass+enzyme decomposition model
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'biomass', 'enzyme')])
+temp$pools; temp$CO2
+```
+
+Run the sorption/desorption submodel
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'protect_C', 'protect_S')])
+temp$pools
+```
+
+Run full biomass+enzyme with sorption/desorption model
+```{r}
+temp <- makePlots(par, pools[c('simple', 'complex', 'biomass', 'enzyme', 'protect_C', 'protect_S')])
+temp$pools; temp$CO2
+```
+
+Run full biomass+enzyme with sorption/desorption and dormancy model
+```{r}
+temp <- makePlots(par, pools)
+temp$pools; temp$CO2
+```
+
