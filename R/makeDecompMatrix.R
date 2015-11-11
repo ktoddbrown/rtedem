@@ -10,6 +10,7 @@
 #' @import assertthat
 #' @export
 makeDecompMatrix <- function(par, tauStr='tau', transStr='A', verbose=FALSE){
+  if(verbose){cat('par:\n'); print(par)}
   assert_that(!is.null(names(par)))
   assert_that(any(grepl('tau', names(par))))
   
