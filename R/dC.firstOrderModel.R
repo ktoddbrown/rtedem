@@ -16,12 +16,13 @@
 #' @import assertthat
 dC.firstOrderModel <- function(t, y, parms, tauStr='tau', transStr='A', envSensitivity=function(t){return(1)}, verbose=FALSE, ...){
   if(verbose){cat('y:\n'); print(y)}
-  Kmatrix <- makeDecompMatrix(parms, tauStr=tauStr, transStr=transStr)*envSensitivity(t=t, ...)
+  if(verbose){cat('parms:\n'); print(parms)}
+  Kmatrix <- makeDecompMatrix(parms, tauStr=tauStr, transStr=transStr, verbose=verbose)*envSensitivity(t=t, ...)
   if(verbose){cat('K:\n'); print(Kmatrix)}
   assert_that(dim(Kmatrix)[1] == length(y))
   dim(y) <- c(dim(Kmatrix)[1], 1)
   if(verbose){cat('y:\n'); print(y)}
-  ans <- Kmatrix %*% y
+  ans <- as.numeric(Kmatrix %*% y)
   names(ans) <- sprintf('C%d', 1:length(ans))
   return(list(ans))
 }
