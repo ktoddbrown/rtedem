@@ -21,7 +21,7 @@ test_that('dC.guildModel reproduces a simple first order model', {
                                 type=c('decay', 'transfer', 'decay', 'transfer'),
                                 stringsAsFactors=FALSE)
   y <- c(C1=1, C2=3)
-  parms <- unlist(list(tau1=10, tau2=100, trans2=0.5, trans3=0.1))
+  parms <- c(tau1=10, tau2=100, trans2=0.5, trans3=0.1)
   
   expect_equal(dC.firstOrderModel(t=0, y=y, parms=parms, transStr='trans'),
                   dC.guildModel(t=0, y=y, parms=parms, reactionNetwork=reactionNetwork))
