@@ -1,86 +1,23 @@
-dC.guildSCEBModel <- function(t, y, parms, 
-                           poolDef=list(B1=list(cSource=c('S1', 'S2'), enz='E1', dead='C2'),
-                                        B2=list(cSource=c('S2'), enz='E2', dead='C2'),
-                                        B3=list(cSource=c('S1', 'S2'), dead='C2')),
-                           enzKinetics=list(E1='MM', E2='multi'),
-                           uptakeKinetics='monod'){
+dC.guildModel <- function(t, y=c(C1=1, C2=3), 
+                          parms=list(k1=0.1, k2=0.01, trans2=0.5, trans3=0.1), 
+                          reactionNetwork = data.frame(from=c('C1', 'C1', 'C2', 'C2'), 
+                                                       to=c(NA, 'C2', NA, 'C1'), 
+                                                       reaction=c('k1*(1-trans2)*C1', 'k1*trans2*C1', 'k2*(1-trans3)*C2', 'k2*trans3*C2'),
+                                                       type=c('decay', 'transfer', 'decay', 'transfer'),
+                                                       stringsAsFactors=FALSE)){
   
-  poolNames <- unique(c(names(poolDef), unlist(poolDef), gsub('E', 'C', names(enzKinetics))))
-  poolNames <- c(poolNames, sprintf('P%s', poolNames[grepl('(S|E|C)', poolNames)]))
-  assert_that(length(y) == length(poolNames))
+  attach(c(as.list(y), parms))
+  temp <- ddply(reactionNetwork, c('from', 'to', 'reaction'), summarize, value = eval(parse(text = reaction)))
+  detach(c(as.list(y), parms))
   
-  names(y) <- poolNames
-  
-  ##death/turnover
-  turnover <- parms[grepl('turnover', names(parms))]
-  names(turnover) <- gsub('\\.', '', gsub('turnover', '', names(turnover)))
-  turnover <- turnover * y[names(turnover)]
- 
-  ##uptake
-  uptake.df <- data.frame(parms[grepl('(v|km)_up', names(parms))])
-  names(uptake.df) <- c('value')
-  uptake.df$key <- row.names(uptake.df)
-  uptake.df$to <- gsub('\\..+\\..+$','', uptake.df$key)
-  uptake.df$parName <- gsub('^.+\\.', '' ,gsub('\\.[^\\.]+$','', uptake.df$key))
-  uptake.df$from <- gsub('^[^\\.]+\\.[^\\.]+\\.','', uptake.df$key)
-  uptake.df <- dcast(uptake.df, to + from~parName)
-  
-  feeders <- lapply(unique(uptake.df$from), function(xx){return(unique(uptake.df$to[uptake.df$from == xx]))})
-  names(feeders) <- unique(uptake.df$from) 
-  if(grepl('monod', uptakeKinetics)){
-    #sum the 
-    uptake.df$rate <- y[uptake.df$to]*y[uptake.df$from]*uptake.df$v_up/(y[uptake.df$from])
+  dC <- data.frame()
+  for(idStr in unique(c(temp$to, temp$from))){
+    dC <- rbind.fill(dC, data.frame(id=idStr, 
+                                    value=sum(temp$value[temp$to %in% idStr]) -
+                                      sum(temp$value[temp$from %in% idStr])))
   }
-  ##enzyme kinetics
-  ##sorption/desoprtion
-}
-
-makeTestPar.guildDecomp <- function(poolDef=list(B1=list(cSource=c('S1', 'S2'), enz='E1', dead='C2'),
-                                                 B2=list(cSource=c('S2'), enz='E2', dead='C2'),
-                                                 B3=list(cSource=c('S1', 'S2'), dead='C2')),
-                                    enzKinetics=list(E1='MM', E2='multi'),
-                                    uptakeKinetics='Monod'){
-  poolNames <- unique(c(names(poolDef), unlist(poolDef), gsub('E', 'C', names(enzKinetics))))
-  poolNames <- c(poolNames, sprintf('P%s', poolNames[grepl('(S|E|C)', poolNames)]))
-  
-  biomassArg <- lapply(poolDef, function(xx){
-    ans <- list()
-    #Each biomass has its own turnover
-    ans$turnover <- rnorm(1, mean=0.1, sd=0.05)
-    
-    #Each biomass/simple has its own uptake kinetic
-    ans$v_up <- lapply(xx$cSource, function(yy){
-      return(rnorm(1, mean=2, sd=0.5))
-    })
-    names(ans$v_up) <- xx$cSource
-    
-    ans$km_up <- lapply(xx$cSource, function(yy){
-      return(rnorm(1, mean=10, sd=0.5))
-    })
-    names(ans$km_up) <- xx$cSource
-    
-    
-    return(ans)
-  })
-  
-  enzArg <- lapply(enzKinetics, function(xx){
-    ans <- list()
-  #Each enzyme (or complex) has its own enzyme kinitic
-    ans$v_max <- rnorm(1, mean=1, sd=0.2)
-    if(grepl('MM', xx)){
-      ans$km <- rnorm(1, mean=15, sd=1)
-    }
-  #Each enzyme has its own turnover
-    ans$turnover <- rnorm(1, mean=0.1, sd=0.01)
-    return(ans)
-  })
-  
-  #Each simple/enzyme/complex has it's own sorbtion/desorbtion
-  protectionArg <- lapply(poolNames[grepl('^P', poolNames)], function(xx){
-    return(list(rnorm(1, mean=0.5, sd=0.01)))
-  })
-  names(protectionArg) <- poolNames[grepl('^P', poolNames)]
-  protectionArg$maxP <- 10
-  
-  return(unlist(c(biomassArg, enzArg, protectionArg)))
+  dy <- dC$value[!is.na(dC$id)]
+  names(dy) <- dC$id[!is.na(dC$id)]
+  dy <- dy[names(y)]
+  return(list(dy))
 }
