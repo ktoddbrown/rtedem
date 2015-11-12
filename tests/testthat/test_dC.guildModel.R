@@ -11,9 +11,14 @@ library(testthat)
 
 context("dC.guildModel")
 
-test_that('dC.guildModel produces expected errors',{})
+test_that('dC.guildModel produces expected errors',{
+  expect_error(dC.guildModel(t=0, parms=c(a=1, b=2), reactionNetwork=data.frame(from=c('C1'), to='C2', reaction=c('a+c'))))
+  expect_error(dC.guildModel(t=0, parms=c(a=1, b=2), reactionNetwork=data.frame(from=c('C1'), to='C2', reaction=c('a+C3'))))
+})
 
 test_that('dC.guildModel reproduces a simple first order model', {
+  expect_equal(dC.guildModel(t=0), list(unlist(list(C1=-0.097, C2=0.020))))
+  
   reactionNetwork <- data.frame(from=c('C1', 'C1', 'C2', 'C2'), 
                                 to=c(NA, 'C2', NA, 'C1'), 
                                 reaction=c('1/tau1*(1-trans2)*C1', '1/tau1*trans2*C1', 
