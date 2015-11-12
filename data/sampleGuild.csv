@@ -1,0 +1,1 @@
+source,product,catalist,kinetic,parametersPc,C,NA,NA,sorb_rate + carbonCapacityC,Pc,NA,NA,desorb_ratePs,S,NA,NA,sorb_rate + carbonCapacityS,Ps,NA,NA,desorb_rateC,S,E,MM,vmax + kmS,B,NA,Monod,vmax + km + cueS,C,NA,NA,tau_bE,C,NA,NA,tau_eB,D,S,threshhold,S_crit + dormancy_rateD,B,S,threshhold,S_crit + dormancy_rateB,NA,NA,NA,hB,E,NA,NA,enz_prod + enz_cost
