@@ -1,0 +1,10 @@
+base
+rtedem
+ggplot2
+deSolve
+rootSolve
+coda
+FME
+reshape2
+plyr
+assertthat
