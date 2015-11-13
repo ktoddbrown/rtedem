@@ -14,3 +14,18 @@ context("publishedParameters")
 test_that("publishedParameters handles bad inputs",{
   expect_error(publishedParameters(nameArr=c(1,2,3)))
 })
+
+
+test_that('publishedParmaeters models all follow conservation of mass',{
+  allModels <- publsihedParameters()
+  counter <- 0
+  for(model in allModels){
+    counter <- counter + 1
+    y0 <- c(C1=1, C2=1, C3=1, C4=1, C5=1, C6=1, C7=1)
+    y0 <- c(y0[1:length(model$type)], 'CO2'=0)
+    expect_equal(0,
+          sum(unlist(dCModel(t=1, y=y0, parms=model$par, 
+                             reactionNetwork=model$reactionNetwork))), 
+          info=sprintf("model: %s", names(allModels)[counter]))
+  }
+})
