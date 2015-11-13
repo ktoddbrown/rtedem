@@ -17,7 +17,7 @@ test_that("publishedParameters handles bad inputs",{
 
 
 test_that('publishedParmaeters models all follow conservation of mass',{
-  allModels <- publsihedParameters()
+  allModels <- publishedParameters()
   counter <- 0
   for(model in allModels){
     counter <- counter + 1
