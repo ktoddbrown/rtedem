@@ -12,13 +12,11 @@ library(testthat)
 context("createSynData")
 
 test_that('createSynData does it run on a one pool model', {
-  expect_silent(synData <- createSynData(par=unlist(list(tau1=180)), timeArr=2^(seq(0, 10, length=50)), tauStr='tau'))
+  parls <- publishedParameters()[[1]]
+  par <- c(a1=0.1, a2=0.1, a3=0.1, a4=0.1, parls$par)
+  reactionNetwork <- parls$reactionNetwork
+  reactionNetwork$to[is.na(reactionNetwork$to)] <- 'CO2'
+  allocationFn <- function(par, C_bulk=1){with(as.list(par), C_bulk*c(C1=a1, C2=a2, C3=a3, C4=a4, C5=1-sum(c(a1, a2, a3, a4)), CO2=0))}
   
-   par <- unlist(list('v_enz'=0.2, 'km_enz'=10,
-                      'v_up'=1, 'km_up'=2,
-                      'cue'=0.5, 'basal' = 0.01,
-                      'turnover_b'=0.5, 'turnover_e'=0.1,
-                      a1=0.1, a2=0.8))
-   expect_silent(synData <- createSynData(par, timeArr=2^(seq(0, 10, length=50)), cModel=dC.biomassModel, poolAssignment=list(simple=1, complex=2, biomass=3)))
-   expect_silent(synData <- createSynData(par, timeArr=2^(seq(0, 10, length=50)), cModel=dC.biomassModel, relTime=list('biomass'=4), poolAssignment=list(simple=1, complex=2, biomass=3)))
+  expect_silent(temp <- createSynData(par, reactionNetwork, allocationFn=allocationFn, timeArr=0:10, dt=1, relTime=c(C1=2), relSd=0.1, verbose=FALSE))
 })

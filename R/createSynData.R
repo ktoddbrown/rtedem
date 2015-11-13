@@ -3,37 +3,32 @@
 #' This function creates model output with a specified parameter set and adds a relative uncertainty. This is a good example of the format your data is expected to be in for this package.
 #'
 #' @param par numeric named parameter set defining the run
+#' @param reactionNetwork data.frame with the 'to', 'from', and 'reaction' columns
 #' @param timeArr numeric time points of interest
-#' @param C_bulk numeric scalar of inital bulk carbon
+#' @param allocationFn a function that returns the initial carbon distribution based on par
 #' @param dt numeric scalar 'cap' time for dCO2 calculation
-#' @param relTime list of C pools to normalize and their associated normalization time points
-#' @param relSd.ls list of relative standard deviation to assign to dCO2 and relative C pools
-#' @param ... parameters to pass to runModel
+#' @param relTime named array of C pools to normalize and their associated normalization time points
+#' @param relSd the relative standard deviation
 #' @param verbose print out useful debugging statetments
 #'
 #' @return a data.frame with synthetic data
 #' @export
 #'
-#' @examples
-#' synData <- createSynData(par=unlist(list('label1.a1'=0.1, tau1=180, tau2=10*365)), timeArr=2^(seq(0, 10, length=50)))
-#' print(head(synData))
-createSynData <- function(par, timeArr, C_bulk=1, dt=1, relTime=list(), relSd.ls=list(dCO2=0.05, relC=0.1), ..., verbose=FALSE){
-  modelOutput <- runModel(par=par, timeArr=timeArr, 
-                          C_bulk=C_bulk, dt=dt, ...,
-                          verbose=verbose)
-  if(verbose){print(head(modelOutput))}
-  if(sum(!names(modelOutput) %in% c('time', 'label')) > 1){
-    modelOutput$bulkC <- rowSums(modelOutput[,!names(modelOutput) %in% c('time', 'label')])
-  }else{
-    modelOutput$bulkC <- modelOutput[,!names(modelOutput) %in% c('time', 'label')]
-  }
+createSynData <- function(par, reactionNetwork, allocationFn, timeArr, dt, relTime=c(), relSd=0.1, verbose=FALSE){
   
+  relTime <- unlist(relTime)
+  
+  modelOutput <- runModel(par=par, timeArr=timeArr, y0=allocationFn(par), dt=dt, reactionNetwork=reactionNetwork, verbose=verbose)
+  
+  if(verbose){print(head(modelOutput))}
+  
+  #calcuate any relative temporal changes
   relNames <- sprintf('rel%s', names(relTime))
   for(nameStr in names(relTime)){
-    modelOutput[,sprintf('rel%s', nameStr)] <- modelOutput[,nameStr]/modelOutput[which.min(abs(modelOutput$time - relTime[[nameStr]])), nameStr]
+    modelOutput[,sprintf('rel%s', nameStr)] <- modelOutput[,nameStr]/modelOutput[which.min(abs(modelOutput$time - relTime[nameStr])), nameStr]
   }
   
-  modelOutput$CO2 <- C_bulk - modelOutput$bulkC
+  #calculate dCO2
   temp <- modelOutput[,c('time', 'CO2')]
   temp$time <- temp$time-dt
   names(temp) <- c('time', 'nextCO2')
@@ -42,19 +37,16 @@ createSynData <- function(par, timeArr, C_bulk=1, dt=1, relTime=list(), relSd.ls
   modelOutput <- merge(modelOutput, temp[,c('time', 'dCO2')], all=TRUE)
   
   ##Construct artifical data
-  refData <- as.data.frame(modelOutput[,c('time', 'label', relNames, 'dCO2')])
-  #refData[refData$time != , 'relC1'] <- NA
-  for(nameStr in relNames){
-    refData[,sprintf('%s.mean', nameStr)] <- refData[,nameStr]*rnorm(dim(refData)[1], mean=1, sd=relSd.ls$relC)
-    refData[,sprintf('%s.sd', nameStr)] <- refData[,nameStr]*relSd.ls$relC
+  refData <- modelOutput
+  for(nameStr in setdiff(names(modelOutput), 'time')){
+    refData[,sprintf('%s.mean', nameStr)] <- refData[,nameStr]*rnorm(dim(refData)[1], mean=1, sd=relSd)
+    refData[,sprintf('%s.sd', nameStr)] <- refData[,nameStr]*relSd
   }
-  refData$dCO2.mean <- refData$dCO2*rnorm(dim(refData)[1], mean=1, sd=relSd.ls$dCO2)
-  refData$dCO2.sd <- refData$dCO2*relSd.ls$dCO2
   
-  refData.mean <- melt(refData[,c('time', 'label', names(refData)[grepl('mean$', names(refData))])], id.vars = c('time', 'label'), value.name='mean')
+  refData.mean <- melt(refData[,c('time', names(refData)[grepl('mean$', names(refData))])], id.vars = c('time'), value.name='mean')
   refData.mean$variable <- gsub('\\.mean$', '', refData.mean$variable)
   refData.mean <- refData.mean[is.finite(refData.mean$mean), ]
-  refData.sd <- melt(refData[,c('time', 'label', names(refData)[grepl('sd$', names(refData))])], id.vars=c('time', 'label'), value.name='sd')
+  refData.sd <- melt(refData[,c('time', names(refData)[grepl('sd$', names(refData))])], id.vars=c('time'), value.name='sd')
   refData.sd$variable <- gsub('\\.sd$', '', refData.sd$variable)
   refData <- merge(refData.mean, refData.sd)
  
