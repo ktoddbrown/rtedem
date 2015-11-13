@@ -12,46 +12,16 @@ library(testthat)
 context("runModel")
 
 test_that('runModel executes',{
-  par.ls <- publishedParameters()[['TECO']]
-  par <- c(rep(0.1, length(par.ls$tau)-1), par.ls$tau, par.ls$trans$val)
-  names(par) <- c(sprintf('label1.a%d', 1:(length(par.ls$tau)-1)), sprintf('tau%d', 1:length(par.ls$tau)), as.character(par.ls$trans$name))
+  modelDef <- publishedParameters()[[1]]
   
   expect_error(runModel())
   expect_error(runModel(par=par))
   expect_error(runModel(timeArr=1:10))
-  expect_true(is.data.frame(runModel(par=par, timeArr=1:10, transStr='A')))
+  expect_true(is.data.frame(runModel(par=modelDef$par, timeArr=1:10, y0=c(C1=1, C2=1, C3=1, C4=1, C5=1), reactionNetwork=modelDef$reactionNetwork)))
 })
 
-test_that("runModel correctly calculates step", {
-  par.ls <- publishedParameters()[['TECO']]
-  par <- c(rep(0.1, length(par.ls$tau)-1), par.ls$tau, par.ls$trans$val)
-  names(par) <- c(sprintf('label1.a%d', 1:(length(par.ls$tau)-1)), sprintf('tau%d', 1:length(par.ls$tau)), as.character(par.ls$trans$name))
-  
-  expect_silent(test <- runModel(par, timeArr=1:10, transStr='A'))
-  y0 <- test[1,1+1:length(par.ls$tau)]
-  expect_silent(K <- makeDecompMatrix(par=par, transStr='A'))
-  
-  expect_true(all(abs((y0+K %*% t(y0))-test[2,1+1:length(par.ls$tau)])/test[2, 1+1:length(par.ls$tau)] < 1e-3))
-})
 
 test_that("runModel correctly runs a one pool model",{
-  expect_silent(modelOut <- runModel(par=unlist(list(tau1=180)), timeArr=2^seq(0, 10, length=50)))
-  expect_true(all(abs(modelOut$C1-exp(-1/180*modelOut$time) ) < 1e-5))
-})
-
-test_that("runModel runs a nonlinear model",{
-  par <- unlist(list('v_enz'=0.2, 'km_enz'=10,
-              'v_up'=1, 'km_up'=2,
-              'cue'=0.5, 'basal' = 0.01,
-              'turnover_b'=0.5, 'turnover_e'=0.1,
-              a1=0.9, a2=0.01))
-  test <- runModel(par=par, timeArr=2^seq(0, 10, length=50), cModel=dC.biomassModel, poolAssignment=list(simple=1, complex=2, biomass=3))
-  
-  par <- unlist(list('v_enz'=0.2, 'km_enz'=10,
-                     'v_up'=1, 'km_up'=2,
-                     'enzProd'=0.01, 'enzCost'=0.75, 
-                     'cue'=0.5, 'basal' = 0.01,'turnover_e'=0.1,
-                     'turnover_b'=0.5,
-                     a1=0.8, a2=0.1, a3=0.05))
-  model <- runModel(par, timeArr= floor(2^(seq(0, 6, length=50))), cModel=dC.biomassModel, poolAssignment=list(simple=1, complex=2, enzyme=3, biomass=4))
+  expect_silent(modelOut <- runModel(par=unlist(list(tau1=180)), timeArr=2^seq(0, 10, length=50), y0=c(C1=1), reactionNetwork=data.frame(from=c('C1'), to=c(NA), reaction=c('C1*1/tau1')), verbose=FALSE))
+  expect_true(all(abs(modelOut$C1-modelOut$C1[1]*exp(-1/180*modelOut$time) ) < 1e-5))
 })

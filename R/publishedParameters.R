@@ -8,8 +8,35 @@
 publishedParameters <- function(nameArr = NULL){
  
   assertthat::is.string(nameArr)
+  ans <- list(
+    #YASSO07, Tuomi et al 2009, 5 pool decomposition
+    YASSO07 = list(par=c(tau1=1/0.66*365, tau2=1/4.3*365, tau3=1/0.35*365, tau4=1/0.22*365, tau5=1/3.3e-3*365, transC1C2=0.34, transC1C5=0.04, transC2C1=0.32, transC2C5=0.04, transC3C1=0.01, transC3C4=0.92, transC3C5=0.04, transC4C1=0.93, transC4C3=0.01, transC4C5=0.04),
+                  reactionNetwork=data.frame(
+                    from=c('C1', 'C2', 'C3', 'C4', 'C5', 'C1', 'C1', 'C2', 'C2', 'C3', 'C3', 'C3', 'C4', 'C4', 'C4'),
+                    to = c(NA, NA, NA, NA, NA, 'C2', 'C5', 'C1', 'C5', 'C1', 'C4', 'C5', 'C1', 'C3', 'C5'),
+                    reaction=c('C1/tau1*(1-transC1C2-transC1C5)',
+                               'C2/tau2*(1-transC2C1-transC2C5)',
+                               'C3/tau3*(1-transC3C1-transC3C4-transC3C5)',
+                               'C4/tau4*(1-transC4C1-transC4C3-transC4C5)',
+                               'C5/tau5',
+                               'C1/tau1*transC1C2',
+                               'C1/tau1*transC1C5',
+                               'C2/tau2*transC2C1',
+                               'C2/tau2*transC2C5',
+                               'C3/tau3*transC3C1',
+                               'C3/tau3*transC3C4',
+                               'C3/tau3*transC3C5',
+                               'C4/tau4*transC4C1',
+                               'C4/tau4*transC4C3',
+                               'C4/tau4*transC4C5'), 
+                    stringsAsFactors=FALSE
+                  ),
+                  type=c('litter-acid', 'litter-water', 'litter-nonpolar', 'litter-other', 'soil'),
+                  citation='http://dx.doi.org/10.1016/j.ecolmodel.2009.05.016')
+  )
   
-   ans <- list(
+  
+   ansOLD <- list(
     #YASSO07, Tuomi et al 2009, 5 pool decomposition
     YASSO07 = list(tau=(1/c(0.66, 4.3, 0.35, 0.22, 3.3e-3))*365,
                  trans=data.frame(name=paste('A', c(2,3,4,5,6,8,9,10,11,12,14,15,16,17,18,20), sep=''),
@@ -49,6 +76,9 @@ publishedParameters <- function(nameArr = NULL){
   if(!is.null(nameArr)){
     ans <- ans[[intersect(nameArr, names(ans))]]
   }
-  
+   #dCModel(t=0, y=c(C1=1, C2=1, C3=1, C4=3, C5=3), parms=ans_new$YASSO07$par, reactionNetwork=ans_new$YASSO07$reactionNetwork)
+   #par <- c(temp$YASSO07$tau, temp$YASSO07$trans$val)
+   #names(par) <- c(sprintf('tau%d', 1:length(temp$YASSO07$tau)), as.character(temp$YASSO07$trans$name))
+   #dC.firstOrderModel(t=0, y=c(C1=1, C2=1, C3=1, C4=3, C5=3), parms=par)
   return(ans)
 }
