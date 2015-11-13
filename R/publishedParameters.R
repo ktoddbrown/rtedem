@@ -13,7 +13,7 @@ publishedParameters <- function(nameArr = NULL){
     YASSO07 = list(par=c(tau1=1/0.66*365, tau2=1/4.3*365, tau3=1/0.35*365, tau4=1/0.22*365, tau5=1/3.3e-3*365, transC1C2=0.34, transC1C5=0.04, transC2C1=0.32, transC2C5=0.04, transC3C1=0.01, transC3C4=0.92, transC3C5=0.04, transC4C1=0.93, transC4C3=0.01, transC4C5=0.04),
                   reactionNetwork=data.frame(
                     from=c('C1', 'C2', 'C3', 'C4', 'C5', 'C1', 'C1', 'C2', 'C2', 'C3', 'C3', 'C3', 'C4', 'C4', 'C4'),
-                    to = c(NA, NA, NA, NA, NA, 'C2', 'C5', 'C1', 'C5', 'C1', 'C4', 'C5', 'C1', 'C3', 'C5'),
+                    to = c('CO2', 'CO2', 'CO2', 'CO2', 'CO2', 'C2', 'C5', 'C1', 'C5', 'C1', 'C4', 'C5', 'C1', 'C3', 'C5'),
                     reaction=c('C1/tau1*(1-transC1C2-transC1C5)',
                                'C2/tau2*(1-transC2C1-transC2C5)',
                                'C3/tau3*(1-transC3C1-transC3C4-transC3C5)',
@@ -32,7 +32,43 @@ publishedParameters <- function(nameArr = NULL){
                     stringsAsFactors=FALSE
                   ),
                   type=c('litter-acid', 'litter-water', 'litter-nonpolar', 'litter-other', 'soil'),
-                  citation='http://dx.doi.org/10.1016/j.ecolmodel.2009.05.016')
+                  citation='http://dx.doi.org/10.1016/j.ecolmodel.2009.05.016'),
+    CLM = list(type=c('litter-waterAlcohol', 'litter-acid', 'litter-other', 'soil-1', 'soil-2', 'soil-3'),
+              citation='http://dx.doi.org/10.1016/j.ecolmodel.2005.04.008',
+              par = c(tau1=1/0.7, tau2=1/0.07, tau3=1/0.014, tau4=1/0.07, tau5=1/0.014, tau6=1/0.0005, transC1C4=1-0.39, transC2C5=1-0.55, transC3C6=1-0.29, transC4C5=1-0.28, transC5C6=1-0.46),
+              reactionNetwork=data.frame(from=c('C1', 'C1', 'C2', 'C2', 'C3', 'C3', 'C4', 'C4', 'C5', 'C5', 'C6'),
+                                  to=c('CO2', 'C4', 'CO2', 'C5', 'CO2', 'C6', 'CO2', 'C5', 'CO2', 'C6', 'CO2'),
+                                  reaction=c('C1/tau1*(1-transC1C4)', 'C1/tau1*transC1C4',
+                                             'C2/tau2*(1-transC2C5)', 'C2/tau2*transC2C5',
+                                             'C3/tau3*(1-transC3C6)', 'C3/tau3*transC3C6',
+                                             'C4/tau4*(1-transC4C5)', 'C4/tau4*transC4C5',
+                                             'C5/tau5*(1-transC5C6)', 'C5/tau5*transC5C6',
+                                             'C6/tau6'),
+                                  stringsAsFactors=FALSE)),
+    TECO =list(type=c('litter-metabolic', 'litter-structure', 'soil-microbe', 'soil-slow', 'soil-passive'),
+               citation='http://dx.doi.org/10.1029/2005GB002468',
+               par = c(tau1=1/1.7e-2, tau2=1/5.10e-3, tau3=1/1.04e-3, tau4=1/1.70e-4, tau5=1/5.25e-6, transC1C3=0.45, transC2C3=0.275, transC2C4=0.275, transC3C4=0.296, transC3C5=0.004, transC4C3=0.42, transC4C5=0.03, transC5C3=0.45),
+               reactionNetwork=data.frame(from=c('C1', 'C1', 'C2', 'C2', 'C2', 'C3', 'C3', 'C3', 'C4', 'C4', 'C4', 'C5', 'C5'),
+                                   to=c('C3', 'CO2', 'C3', 'C4', 'CO2', 'C4', 'C5', 'CO2', 'C3', 'C5', 'CO2', 'C3', 'CO2'),
+                                   reaction=c('C1/tau1*transC1C3', 'C1/tau1*(1-transC1C3)',
+               'C2/tau2*transC2C3', 'C2/tau2*transC2C4', 'C2/tau2*(1-transC2C3-transC2C4)',
+               'C3/tau3*transC3C4', 'C3/tau3*transC3C5', 'C3/tau3*(1-transC3C4-transC3C5)',
+               'C4/tau4*transC4C3', 'C4/tau4*transC4C5', 'C4/tau4*(1-transC4C3-transC4C5)',
+               'C5/tau5*transC5C3', 'C5/tau5*(1-transC5C3)'))),
+    #CENTURY, Parton et al 1987, 1988 6 pool decomposition
+    #Let clay+silt fraction T=0.5; structural lignin fraction A=0.1
+    CENTURY=list(type=c('litter-metabolic', 'litter-surfaceStructure', 'litter-belowStructure', 
+                        'soil-active', 'soil-slow', 'soil-passive'),
+                 citation='http://dx.doi.org/10.2136/sssaj1987.03615995005100050015x',
+                 par = c(tau1=0.5*365, tau2=3*365, tau3=3*365, tau4=1.5*365, tau5=25*365, tau6=1e3*365, T=0.5, A=0.1, transC1C4=0.45, transC2C4=1-0.45, transC2C5=1-0.3, transC3C4=1-0.55, transC3C5=1-0.3, transC4C5=1-0.85-0.004, transC4C6=0.004, transC5C4=0.042,  transC5C6=0.03, transC6C4=1-0.55),
+                 reactionNetwork=data.frame(from=c('C1', 'C1', 'C2', 'C2', 'C2', 'C3', 'C3', 'C3', 'C4', 'C4', 'C4', 'C5', 'C5', 'C5', 'C6', 'C6'),
+                                            to=c('C4', 'CO2', 'C4', 'C5', 'CO2', 'C4', 'C5', 'CO2', 'C5', 'C6', 'CO2', 'C4', 'C6', 'CO2', 'C4', 'CO2'),
+               reaction=c('C1/tau1*transC1C4', 'C1/tau1*(1-transC1C4)',
+'C2/tau2*(1-A)*transC2C4','C2/tau2*A*transC2C5', 'C2/tau2*(1-(1-A)*transC2C4-A*transC2C5)',
+'C3/tau3*(1-A)*transC3C4','C3/tau3*A*transC3C5', 'C3/tau3*(1-(1-A)*transC3C4-A*transC3C5)',
+'C4/tau4*(transC4C5+0.68*T)','C4/tau4*transC4C6', 'C4/tau4*(1-(transC4C5+0.68*T)-transC4C6)',
+'C5/tau5*transC5C4', 'C5/tau5*transC5C6', 'C5/tau5*(1-transC5C4-transC5C6)',
+'C6/tau6*transC6C4', 'C6/tau6*(1-transC6C4)')))
   )
   
   
