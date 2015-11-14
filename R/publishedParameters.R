@@ -68,7 +68,47 @@ publishedParameters <- function(nameArr = NULL){
 'C3/tau3*(1-A)*transC3C4','C3/tau3*A*transC3C5', 'C3/tau3*(1-(1-A)*transC3C4-A*transC3C5)',
 'C4/tau4*(transC4C5+0.68*T)','C4/tau4*transC4C6', 'C4/tau4*(1-(transC4C5+0.68*T)-transC4C6)',
 'C5/tau5*transC5C4', 'C5/tau5*transC5C6', 'C5/tau5*(1-transC5C4-transC5C6)',
-'C6/tau6*transC6C4', 'C6/tau6*(1-transC6C4)')))
+'C6/tau6*transC6C4', 'C6/tau6*(1-transC6C4)'))),
+  
+   #Wang, G., Post, W. M. and Mayes, M. A.: Development of microbial-enzyme-mediated decomposition model parameters through steady-state and dynamic analyses, Ecol. Appl., 23(1), 255–272, doi:10.1890/12-0681.1, 2013.
+    MEND = list(type=c('biomass-B', 'dissolved-D', 'particulate-P', 'absorbed-Q', 'mineralAssoc-M', 'p-enzyme-EP', 'm-enzmye-EM'),
+               citation='http://dx.doi.org/10.1890/12-0681.1',
+               y0Units='mg C/g soil',
+               y0 = c(B=2, D=1, P=10, Q=0.1, M=5, EP=1e-5, EM=1e-5, CO2=0),
+               par=c(m_R=2.8e-4, 
+                     E_C=0.47, 
+                     f_D=0.5, g_D=0.5, 
+                     r_EP=1e-3, r_EM=1e-3, 
+                     p_EP=1e-2, p_EM=1e-2,
+                     Q_max=1.7,
+                     K_BA=6,
+                     K_des=1e-3,
+                     K_D=0.26,
+                     V_D=5e-4,
+                     V_P=2.5,
+                     K_P=50,
+                     V_M=1,
+                     K_M=250),
+               reactionNetwork=data.frame(
+                 type=c('uptake', 'PtoM', 'PtoD', 'MtoD', 'resp_growth', 'resp_maint', 'absorpt', 'desorpt', 'death_P', 'death_D', 'enz_prod_EP', 'enz_prod_EM', 'enz_turnover_EP', 'enz_turnover_EM'),
+                 from=c('D', 'P', 'P', 'M',  'B',   'B',  'D', 'Q', 'B', 'B', 'B', 'B', 'EP', 'EM' ),
+                 to = c('B', 'M', 'D', 'D', 'CO2', 'CO2', 'Q', 'D', 'P', 'D', 'EP', 'EM', 'CO2', 'CO2' ),
+                 reaction=c('1/E_C*(V_D+m_R)*D*B/(K_D+D)', #F1 eq9 uptake
+                            '(1-f_D)*V_P*EP*P/(K_P+P)', #F2mod eq10 PtoM
+                            '(f_D)*V_P*EP*P/(K_P+P)', #F2mod eq10, PtoD
+                            'V_M*EM*M/(K_M+M)', #F3 eq11, MtoD
+                            '(1/E_C-1)*V_D*B*D/(K_D+D)', #F4 eq12 resp_growth,
+                            '(1/E_C-1)*m_R*B*D/(K_D+D)', #F5 eq13 maint_resp
+                            'K_des*K_BA*(-Q/Q_max)*D', #F6 eq14 absorpt
+                            'K_des*Q/Q_max', #F7 eq14 desorpt
+                            '(1-g_D)*(1-p_EP-p_EM)*m_R*B', #F8mod eq16 death_P
+                            'g_D*(1-p_EP-p_EM)*m_R*B', #F8mod eq16 death_D
+                            'p_EP*m_R*B', #F9EP
+                            'p_EM*m_R*B', #F9EM
+                            'r_EP*EP',
+                            'r_EM*EM'),
+                 stringsAsFactors=FALSE)
+  )
   )
   
   
