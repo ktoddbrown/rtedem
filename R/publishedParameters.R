@@ -2,7 +2,7 @@
 #'
 #' @param nameArr an array of characers naming the models to be pulled. Can be NULL if no subset is desired.
 #'
-#' @return A list of lists describing the parameters and citations for models. Decomposition pools are defined as pools which respire carbon dioxide and are not vegitation pools. Tau is in days and trans are fractional transfers to other carbon pools indexed as column matrix.
+#' @return A list of lists describing the parameters and citations for models.
 #' @export
 #' @import assertthat
 publishedParameters <- function(nameArr = NULL){
@@ -75,6 +75,7 @@ publishedParameters <- function(nameArr = NULL){
                citation='http://dx.doi.org/10.1890/12-0681.1',
                y0Units='mg C/g soil',
                y0 = c(B=2, D=1, P=10, Q=0.1, M=5, EP=1e-5, EM=1e-5, CO2=0),
+               timeUnits='hour',
                par=c(m_R=2.8e-4, 
                      E_C=0.47, 
                      f_D=0.5, g_D=0.5, 
