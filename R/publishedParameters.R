@@ -109,7 +109,13 @@ publishedParameters <- function(nameArr = NULL){
                             'r_EP*EP',
                             'r_EM*EM'),
                  stringsAsFactors=FALSE)
-  )
+    )
+#   ),
+#   MIMICS=list(type=c('metabolic litter (LIT_m)', 'structural litter (LIT_s)', 'copiotrophic microbe (MIC_r)', 'oligiotropic microbes (MIC_K)', 'physically protected (SOM_p)', 'chemically protected (SOC_c)'),
+#               citation='doi: 10.5194/bg-11-3899-2014',
+#               par=c(V_slope=0.063, #ln(mg C(mgMIC)^-1 h^-1 deg-C^-1)
+#                     V_int = 5.47  #ln(mg C(mgMIC)^-1 h^-1 deg-C^-1)
+#                     ))
   )
   
   

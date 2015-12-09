@@ -1,0 +1,157 @@
+---
+title: "Sensitivity analysis of TECO"
+author: "K Todd-Brown [ktoddbrown@gmail.com]"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This is a basic example of a sensitivity analysis with TECO.
+
+```{r setUp}
+library(rtedem)
+library(numDeriv)
+library(plyr)
+library(knitr)
+library(lhs)
+library(reshape2)
+library(ggplot2)
+```
+
+```{r constructRanges}
+pardf <- read.csv('../data/TECOTable1.csv')
+pardf <- pardf[!grepl('^\\s*$',pardf$parName),]
+temp <- 1/pardf[grep('^k\\d$', pardf$parName), c('lower', 'upper', 'default')]
+temp$parName <- gsub('k', 'tau', pardf[grep('^k\\d$', pardf$parName),'parName'])
+temp$Units <- 'gC gC-1 d'
+temp <- rename(temp, c('lower'='upper', 'upper'='lower'))
+pardf <- rbind.fill(pardf, temp)
+pardf <- pardf[!grepl('^k\\d$', pardf$parName),c('parName', 'lower', 'upper', 'default')]
+kable(pardf)
+```
+
+```{r runTECO, eval=FALSE, cache=TRUE}
+model.df <- publishedParameters()[['TECO']]$reactionNetwork
+#par <- as.list(pardf$default); names(par) <- pardf$parName; par$CO2 <- 0; par <- unlist(par)
+
+par.min <- pardf$lower
+par.max <- pardf$upper
+##TODO up sample size to 1e4, and then calculate gradient from neighboring values
+mySample <- improvedLHS(1e4, length(par.min))
+
+modelOut <- data.frame()
+for(ii in 1:(dim(mySample)[1])){
+  par <- as.list(par.min + (par.max-par.min)*mySample[ii,])
+  names(par) <-  pardf$parName
+  par$CO2 <- 0
+  par <- unlist(par)
+  temp <- runModel(par, timeArr=2^(0:9), y0=par[c('C1', 'C2', 'C3', 'C4', 'C5', 'CO2')], reactionNetwork=model.df)
+  temp$index <- ii
+  modelOut <- rbind.fill(modelOut, temp)
+  if(ii %% 100 == 0){
+    cat('At iteration', ii, '\n')
+    save.image(file='sensitivityAE_snap.RData')
+  }
+}
+```
+```{r}
+load(file='sensitivityAE_snap.RData')
+
+mySample <- as.data.frame(mySample)
+names(mySample) <- pardf$parName
+mySample$index <- 1:(dim(mySample)[1])
+par.sample <- melt(mySample, id.vars='index')
+plot.df <- merge(par.sample, modelOut)
+ggplot(plot.df[plot.df$time %in% 2^c(1,4,6,9),]) + 
+  #geom_point(aes(x=value, y=CO2), alpha=0.1) + 
+  stat_bin2d(aes(x=value, y=CO2)) +
+  facet_grid(time~variable, scales='free')
+```
+```{r calcGradient}
+
+ans <- NULL
+
+for(ii in 1:18){
+  cat('On index:', ii, '\n')
+  distance <- as.matrix(dist(mySample[,c(-ii, -19)]))
+  diag(distance) <- NA
+  
+  nearestNeighbor <- as.data.frame(apply(distance, 1, which.min))
+  names(nearestNeighbor) <- 'neigIndex'
+  nearestNeighbor$index <- as.numeric(row.names(nearestNeighbor))
+  cat('calculating dC/dvar\n')
+  #temp <- ddply(nearestNeighbor, .(index, neigIndex), summarize, neigDist=distance[index, neigIndex], parDist = mySample[mySample$index == index, ii] - mySample[mySample$index == neigIndex, ii], dCO2=modelOut[modelOut$index == index & modelOut$time == 8, 'CO2'] - modelOut[modelOut$index == neigIndex & modelOut$time == 8, 'CO2'])
+  temp <- ddply(nearestNeighbor, c('index', 'neigIndex'), 
+                function(xx){
+                  data.frame(neigDist=distance[xx$index, xx$neigIndex], 
+                             parDist = mySample[mySample$index == xx$index, ii] - mySample[mySample$index == xx$neigIndex, ii], 
+                             dCO2=modelOut[modelOut$index == xx$index, 'CO2'] - modelOut[modelOut$index == xx$neigIndex , 'CO2'], 
+                             time=modelOut[modelOut$index == xx$index, 'time'])})
+  
+  temp$dCO2.dpar <- temp$dCO2/temp$parDist
+  temp$parName <- names(mySample)[ii]
+  #names(temp)[!names(temp) %in% c('index', 'time')] <- sprintf('%s_%s', names(mySample)[ii],names(temp)[!names(temp) %in% c('index', 'time')] )
+  
+  if(is.null(ans)){
+    ans <- temp
+  }else{
+    ans <- rbind.fill(ans, temp)
+  }
+  rm(distance)
+}
+ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('tau', parName))) + stat_bin2d(aes(x=dCO2, y=parDist)) + facet_grid(parName~time)
+ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('trans', parName))) + stat_bin2d(aes(x=dCO2, y=parDist)) + facet_grid(parName~time)
+ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('^C\\d$', parName))) + stat_bin2d(aes(x=dCO2, y=parDist)) + facet_grid(parName~time)
+
+quartileSummary <- ddply(ans, .(parName), summarize, L05=quantile(dCO2.dpar, c(0.05)), L25=quantile(dCO2.dpar, c(0.25)), L40=quantile(dCO2.dpar, c(0.40)), med=median(dCO2.dpar), L60=quantile(dCO2.dpar, c(0.60)), L75=quantile(dCO2.dpar, c(0.75)), L95=quantile(dCO2.dpar, c(0.95)))
+quartileSummary$parName <- factor(quartileSummary$parName, levels=quartileSummary$parName[order(quartileSummary$med)])
+ggplot(quartileSummary) + geom_boxplot(aes(ymin=L25, lower=L40, middle=med, upper=L60, ymax=L75, x=parName, fill=abs(med) > 1e-3), stat='identity') + coord_flip()
+```
+
+```{r runTECO, eval=FALSE, cache=TRUE}
+model.df <- publishedParameters()[['TECO']]$reactionNetwork
+#par <- as.list(pardf$default); names(par) <- pardf$parName; par$CO2 <- 0; par <- unlist(par)
+
+par.min <- pardf$lower
+par.max <- pardf$upper
+##TODO up sample size to 1e4, and then calculate gradient from neighboring values
+mySample <- improvedLHS(1e4, length(par.min))
+
+modelOut <- data.frame()
+for(ii in 1:(dim(mySample)[1])){
+  par <- as.list(par.min + (par.max-par.min)*mySample[ii,])
+  names(par) <-  pardf$parName
+  par$CO2 <- 0
+  par <- unlist(par)
+  temp <- runModel(par, timeArr=2^(0:9), y0=par[c('C1', 'C2', 'C3', 'C4', 'C5', 'CO2')], reactionNetwork=model.df)
+  temp$index <- ii
+  modelOut <- rbind.fill(modelOut, temp)
+  if(ii %% 100 == 0){
+    cat('At iteration', ii, '\n')
+    save.image(file='sensitivityAE_snap.RData')
+  }
+}
+```
+
+```{r eval=FALSE} 
+#chunk takes way to long to actually use
+model.df <- publishedParameters()[['TECO']]$reactionNetwork
+
+par.min <- pardf$lower
+par.max <- pardf$upper
+mySample <- improvedLHS(100, length(par.min))
+
+gradModel <- function(xx, myTime){
+  par <- par.min + (par.max-par.min)*xx
+  par <- as.list(par); names(par) <- pardf$parName; par$CO2 <- 0; par <- unlist(par)
+  temp <- runModel(par, timeArr=myTime, y0=par[c('C1', 'C2', 'C3', 'C4', 'C5', 'CO2')], reactionNetwork=model.df)
+  return(temp[temp$time %in% myTime, 'CO2'])
+}
+mySample <- as.data.frame(mySample)
+names(mySample) <- pardf$parName
+temp <- grad(gradModel, unlist(mySample[1,]), myTime=10)
+names(temp) <- names(mySample)
+```

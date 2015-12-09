@@ -1,0 +1,31 @@
+parName,paper_Parameter,Name,Units,lower,upper,default
+,X0(1),initial value of foliage pool ,g C/m2,100,400,200
+,X0(2),Initial value of woody pool ,g C/m2,3000,6000,3800
+,X0(3),initial value of fine roots pool ,g C/m2,100,400,300
+C1,X0(4),initial value of metabolic pool ,g C/m2,40,120,80
+C2,X0(5),initial value of structural pool ,g C/m2,400,700,450
+C3,X0(6),initial value of fast SOM pool ,g C/m2,80,240,100
+C4,X0(7),initial value of slow SOM pool ,g C/m2,1200,2400,1600
+C5,X0(8),initial value of passive SOM pool ,g C/m2,200,400,300
+,c1,exit rate of C from foliage pool ,g C gC-1 d-1,6.85E-04,5.48E-03,2.50E-03
+,c2,exit rate of C from wood pool ,g C gC-1 d-1,3.42E-06,2.74E-04,5.00E-05
+,c3,exit rate of C from fine root pool,g C gC-1 d-1,1.37E-03,9.13E-03,2.20E-03
+k1,c4,exit rate of C from metabolic litter pool ,g C gC-1 d-1,5.48E-03,2.74E-02,1.70E-02
+k2,c5,exit rate of C from structural litter pool ,g C gC-1 d-1,1.37E-04,2.74E-03,7.00E-04
+k3,c6,exit rate of C from fast SOM ,g C gC-1 d-1,5.48E-03,5.48E-02,8.00E-03
+k4,c7,exit rate of C from slow SOM ,g C gC-1 d-1,5.48E-06,5.48E-04,3.00E-04
+k5,c8,exit rate of C from passive SOM ,g C gC-1 d-1,1.37E-06,5.48E-06,5.25E-06
+,b1,allocation of GPP to leaves,,0.05,0.25,1.20E-01
+,b2,allocation of GPP to woody biomass ,,0.1,0.4,3.00E-01
+,b3,allocation of GPP to fine roots,,0.05,0.25,7.00E-02
+,"f4,1",fraction of C in foliage pool transferring to metabolic litter ,,0.3,1,4.00E-01
+,"f4,2",fraction of C in woody pool transferring to metabolic litter ,,0,0.2,1.00E-01
+,"f4,3",fraction of C in fine roots transferring to metabolic litter ,,0.3,1,4.00E-01
+transC1C3,"f6,4",fraction of C in metabolic litter transferring to fast SOM ,,0.3,0.7,0.65
+transC2C3,"f6,5",fraction of C in structural litter transferring to fast SOM ,,0.1,0.4,0.275
+transC2C4,"f7,5",fraction of C in structural litter transferring to slow SOM ,,0.1,0.4,0.275
+transC3C4,"f7,6",fraction of C in fast SOM transferring to slow SOM ,,0.3,0.7,0.296
+transC3C5,"f8,6",fraction of C in fast SOM transferring to passive SOM ,,0,0.008,0.004
+transC4C3,"f6,7",fraction of C in slow SOM transferring to fast SOM ,,0.1,0.6,0.5
+transC4C5,"f8,7",fraction of C in slow SOM transferring to passive SOM ,,0,0.02,0.03
+transC5C3,"f6,8",fraction of C in passive SOM transferring to fast SOM,,0.3,0.7,0.45

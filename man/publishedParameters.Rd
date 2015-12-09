@@ -10,7 +10,7 @@ publishedParameters(nameArr = NULL)
 \item{nameArr}{an array of characers naming the models to be pulled. Can be NULL if no subset is desired.}
 }
 \value{
-A list of lists describing the parameters and citations for models. Decomposition pools are defined as pools which respire carbon dioxide and are not vegitation pools. Tau is in days and trans are fractional transfers to other carbon pools indexed as column matrix.
+A list of lists describing the parameters and citations for models.
 }
 \description{
 Create list with published parameters
