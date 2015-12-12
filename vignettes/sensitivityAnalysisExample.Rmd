@@ -33,7 +33,7 @@ pardf <- pardf[!grepl('^k\\d$', pardf$parName),c('parName', 'lower', 'upper', 'd
 kable(pardf)
 ```
 
-```{r runTECO, eval=FALSE, cache=TRUE}
+```{r randomRuns, eval=FALSE}
 model.df <- publishedParameters()[['TECO']]$reactionNetwork
 #par <- as.list(pardf$default); names(par) <- pardf$parName; par$CO2 <- 0; par <- unlist(par)
 
@@ -57,7 +57,7 @@ for(ii in 1:(dim(mySample)[1])){
   }
 }
 ```
-```{r}
+```{r visualizeRandomRuns}
 load(file='sensitivityAE_snap.RData')
 
 mySample <- as.data.frame(mySample)
@@ -70,7 +70,7 @@ ggplot(plot.df[plot.df$time %in% 2^c(1,4,6,9),]) +
   stat_bin2d(aes(x=value, y=CO2)) +
   facet_grid(time~variable, scales='free')
 ```
-```{r calcGradient}
+```{r gradFromRandomRuns, cache=TRUE}
 
 ans <- NULL
 
@@ -106,52 +106,91 @@ ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('tau'
 ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('trans', parName))) + stat_bin2d(aes(x=dCO2, y=parDist)) + facet_grid(parName~time)
 ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('^C\\d$', parName))) + stat_bin2d(aes(x=dCO2, y=parDist)) + facet_grid(parName~time)
 
-quartileSummary <- ddply(ans, .(parName), summarize, L05=quantile(dCO2.dpar, c(0.05)), L25=quantile(dCO2.dpar, c(0.25)), L40=quantile(dCO2.dpar, c(0.40)), med=median(dCO2.dpar), L60=quantile(dCO2.dpar, c(0.60)), L75=quantile(dCO2.dpar, c(0.75)), L95=quantile(dCO2.dpar, c(0.95)))
+quartileSummary <- ddply(ans, .(parName, time), summarize, L05=quantile(dCO2.dpar, c(0.05)), L25=quantile(dCO2.dpar, c(0.25)), L40=quantile(dCO2.dpar, c(0.40)), med=median(dCO2.dpar), L60=quantile(dCO2.dpar, c(0.60)), L75=quantile(dCO2.dpar, c(0.75)), L95=quantile(dCO2.dpar, c(0.95)))
 quartileSummary$parName <- factor(quartileSummary$parName, levels=quartileSummary$parName[order(quartileSummary$med)])
-ggplot(quartileSummary) + geom_boxplot(aes(ymin=L25, lower=L40, middle=med, upper=L60, ymax=L75, x=parName, fill=abs(med) > 1e-3), stat='identity') + coord_flip()
+
+ggplot(quartileSummary) + geom_boxplot(aes(ymin=L25, lower=L40, middle=med, upper=L60, ymax=L75, x=parName, fill=abs(med) > 1e-3), stat='identity') + coord_flip() + facet_wrap(~time)
 ```
 
-```{r runTECO, eval=FALSE, cache=TRUE}
+```{r kickedRandomSample, eval=FALSE}
 model.df <- publishedParameters()[['TECO']]$reactionNetwork
 #par <- as.list(pardf$default); names(par) <- pardf$parName; par$CO2 <- 0; par <- unlist(par)
 
 par.min <- pardf$lower
 par.max <- pardf$upper
-##TODO up sample size to 1e4, and then calculate gradient from neighboring values
-mySample <- improvedLHS(1e4, length(par.min))
-
+mySample <- randomLHS(1e4, length(par.min))
+parRecord <- data.frame()
 modelOut <- data.frame()
 for(ii in 1:(dim(mySample)[1])){
-  par <- as.list(par.min + (par.max-par.min)*mySample[ii,])
-  names(par) <-  pardf$parName
-  par$CO2 <- 0
-  par <- unlist(par)
-  temp <- runModel(par, timeArr=2^(0:9), y0=par[c('C1', 'C2', 'C3', 'C4', 'C5', 'CO2')], reactionNetwork=model.df)
-  temp$index <- ii
-  modelOut <- rbind.fill(modelOut, temp)
-  if(ii %% 100 == 0){
-    cat('At iteration', ii, '\n')
-    save.image(file='sensitivityAE_snap.RData')
+  for(jj in 0:length(par.min)){
+    relativePar <- mySample[ii,]
+    
+    if(jj != 0){
+      relativePar[jj] <- relativePar[jj] * rnorm(1, mean=1, sd=0.01)
+      if(relativePar[jj] < 0){
+        relativePar[jj] <- 0
+      }
+      if(relativePar[jj] > 1){
+        relativePar[jj] <- 1
+      }
+    }
+    
+    par <- as.list(par.min + (par.max-par.min)*relativePar)
+    names(par) <-  pardf$parName
+    par$CO2 <- 0
+    par <- unlist(par)
+    
+    temp <- runModel(par, timeArr=2^(0:9), y0=par[c('C1', 'C2', 'C3', 'C4', 'C5', 'CO2')], reactionNetwork=model.df)
+    temp$baseIndex <- ii
+    temp$neigParIndex <- jj
+    modelOut <- rbind.fill(modelOut, temp)
+    
+    relativePar <-as.data.frame(t(relativePar))
+    names(relativePar) <- pardf$parName
+    relativePar$baseIndex <- ii
+    relativePar$neigParIndex <- jj
+    parRecord <- rbind.fill(parRecord, relativePar)
+
+    if(ii %% 100 == 0){
+      cat('At iteration', ii, '\n')
+      save.image(file='sensitivityAE_stepRandomSample.RData', parRecord, modelOut, ii, jj, model.df, pardf)
+    }
   }
 }
 ```
 
-```{r eval=FALSE} 
-#chunk takes way to long to actually use
-model.df <- publishedParameters()[['TECO']]$reactionNetwork
+```{r visualizeKickRandom}
+load(file='sensitivityAE_stepRandomSample.RData')
+dCO2.dx_i <- merge(parRecord, subset(modelOut, select=c(baseIndex, neigParIndex, time, CO2)))
+#temp <- subset(dCO2.dx_i, baseIndex == 1 & time %in% c(2))
+parNames <- pardf$parName
+dCO2.dx_i <- ddply(dCO2.dx_i, c('baseIndex', 'time'), function(xx){
+  return(data.frame(
+    dCO2 = xx$CO2[xx$neigParIndex==0] - xx$CO2[xx$neigParIndex != 0],
+    x_iName = parNames[xx$neigParIndex],
+    dx_i = apply(subset(xx, neigParIndex != 0, select=parNames), c(1), 
+                function(yy){sum(subset(xx, neigParIndex == 0, select=parNames)-yy)})
+  ))
+})
+kable(summary(dCO2.dx_i))
+ggplot(subset(dCO2.dx_i, time %in% c(2, 8, 32, 256))) + geom_histogram(aes(x=dCO2/dx_i)) + facet_grid(time~x_iName) + xlim(-150, 100)
 
-par.min <- pardf$lower
-par.max <- pardf$upper
-mySample <- improvedLHS(100, length(par.min))
+quartileSummary <- ddply(dCO2.dx_i, .(x_iName, time), summarize, L05=quantile(dCO2/dx_i, c(0.05)), L25=quantile(dCO2/dx_i, c(0.25)), L40=quantile(dCO2/dx_i, c(0.40)), med=median(dCO2/dx_i), L60=quantile(dCO2/dx_i, c(0.60)), L75=quantile(dCO2/dx_i, c(0.75)), L95=quantile(dCO2/dx_i, c(0.95)))
+ggplot(quartileSummary) + geom_ribbon(aes(ymin=L25, ymax=L75, y=med, x=time), alpha=0.5)  + geom_line(aes(x=time, y=med)) + facet_wrap(~x_iName) + labs(title=sprintf('Average gradient (n=%d)', max(var_CO2$baseIndex)), y='dCO2/dparameter')
 
-gradModel <- function(xx, myTime){
-  par <- par.min + (par.max-par.min)*xx
-  par <- as.list(par); names(par) <- pardf$parName; par$CO2 <- 0; par <- unlist(par)
-  temp <- runModel(par, timeArr=myTime, y0=par[c('C1', 'C2', 'C3', 'C4', 'C5', 'CO2')], reactionNetwork=model.df)
-  return(temp[temp$time %in% myTime, 'CO2'])
-}
-mySample <- as.data.frame(mySample)
-names(mySample) <- pardf$parName
-temp <- grad(gradModel, unlist(mySample[1,]), myTime=10)
-names(temp) <- names(mySample)
+var_CO2 <- merge(parRecord, subset(modelOut, select=c(baseIndex, neigParIndex, time, CO2)))
+var_CO2 <- ddply(var_CO2, c('baseIndex', 'time'), function(xx){
+    return(data.frame(
+      x_iName = parNames[xx$neigParIndex],
+      without.x_i=sapply(xx$neigParIndex[xx$neigParIndex != 0], 
+                         function(yy){
+                           var(xx$CO2[xx$neigParIndex != yy])
+                                     }),
+      all=var(xx$CO2)))
+    })
+kable(summary(var_CO2))
+ggplot(subset(var_CO2, time %in% c(2, 8, 32, 256))) + geom_histogram(aes(x=without.x_i/all)) + facet_grid(time~x_iName)
+
+quartileSummary <- ddply(var_CO2, .(x_iName, time), summarize, L05=quantile(without.x_i/all, c(0.05), na.rm=TRUE), L25=quantile(without.x_i/all, c(0.25), na.rm=TRUE), L40=quantile(without.x_i/all, c(0.40), na.rm=TRUE), med=median(without.x_i/all, na.rm=TRUE), L60=quantile(without.x_i/all, c(0.60), na.rm=TRUE), L75=quantile(without.x_i/all, c(0.75), na.rm=TRUE), L95=quantile(without.x_i/all, c(0.95), na.rm=TRUE))
+ggplot(quartileSummary) + geom_ribbon(aes(ymin=L25, ymax=L75, y=med, x=time), alpha=0.5)  + geom_line(aes(x=time, y=med)) + facet_wrap(~x_iName) + labs(title=sprintf('Parameter driven variation (n=%d)', max(var_CO2$baseIndex)), y='[var(CO2|without parameter) / var(CO2|all)]')
 ```
