@@ -15,3 +15,5 @@ vignettes/*.html
 vignettes_old/*
 
 vignettes/includedModels.R
+
+R/.DS_Store
