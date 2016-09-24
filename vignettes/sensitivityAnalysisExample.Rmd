@@ -102,6 +102,9 @@ for(ii in 1:18){
   }
   rm(distance)
 }
+
+```
+```{r visualizeRandomRunsGrad}
 ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('tau', parName))) + stat_bin2d(aes(x=dCO2, y=parDist)) + facet_grid(parName~time)
 ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('trans', parName))) + stat_bin2d(aes(x=dCO2, y=parDist)) + facet_grid(parName~time)
 ggplot(subset(ans, abs(parDist) < 0.5 & time %in% c(2, 8, 32, 256) & grepl('^C\\d$', parName))) + stat_bin2d(aes(x=dCO2, y=parDist)) + facet_grid(parName~time)
@@ -159,7 +162,7 @@ for(ii in 1:(dim(mySample)[1])){
 }
 ```
 
-```{r visualizeKickRandom}
+```{r visualizeKickRandomGrad}
 load(file='sensitivityAE_stepRandomSample.RData')
 dCO2.dx_i <- merge(parRecord, subset(modelOut, select=c(baseIndex, neigParIndex, time, CO2)))
 #temp <- subset(dCO2.dx_i, baseIndex == 1 & time %in% c(2))
@@ -173,11 +176,14 @@ dCO2.dx_i <- ddply(dCO2.dx_i, c('baseIndex', 'time'), function(xx){
   ))
 })
 kable(summary(dCO2.dx_i))
-ggplot(subset(dCO2.dx_i, time %in% c(2, 8, 32, 256))) + geom_histogram(aes(x=dCO2/dx_i)) + facet_grid(time~x_iName) + xlim(-150, 100)
+#ggplot(subset(dCO2.dx_i, time %in% c(2, 8, 32, 256))) + geom_histogram(aes(x=dCO2/dx_i)) + facet_grid(time~x_iName) + xlim(-150, 100)
 
 quartileSummary <- ddply(dCO2.dx_i, .(x_iName, time), summarize, L05=quantile(dCO2/dx_i, c(0.05)), L25=quantile(dCO2/dx_i, c(0.25)), L40=quantile(dCO2/dx_i, c(0.40)), med=median(dCO2/dx_i), L60=quantile(dCO2/dx_i, c(0.60)), L75=quantile(dCO2/dx_i, c(0.75)), L95=quantile(dCO2/dx_i, c(0.95)))
-ggplot(quartileSummary) + geom_ribbon(aes(ymin=L25, ymax=L75, y=med, x=time), alpha=0.5)  + geom_line(aes(x=time, y=med)) + facet_wrap(~x_iName) + labs(title=sprintf('Average gradient (n=%d)', max(var_CO2$baseIndex)), y='dCO2/dparameter')
 
+ggplot(quartileSummary) + geom_ribbon(aes(ymin=L25, ymax=L75, y=med, x=time), alpha=0.5)  + geom_line(aes(x=time, y=med)) + facet_wrap(~x_iName) + labs(title=sprintf('Average gradient (n=%d)', max(dCO2.dx_i$baseIndex)), y='dCO2/dparameter')
+```
+
+```{r visualizeKickRandomVarRatio}
 var_CO2 <- merge(parRecord, subset(modelOut, select=c(baseIndex, neigParIndex, time, CO2)))
 var_CO2 <- ddply(var_CO2, c('baseIndex', 'time'), function(xx){
     return(data.frame(
@@ -189,8 +195,9 @@ var_CO2 <- ddply(var_CO2, c('baseIndex', 'time'), function(xx){
       all=var(xx$CO2)))
     })
 kable(summary(var_CO2))
-ggplot(subset(var_CO2, time %in% c(2, 8, 32, 256))) + geom_histogram(aes(x=without.x_i/all)) + facet_grid(time~x_iName)
+#ggplot(subset(var_CO2, time %in% c(2, 8, 32, 256))) + geom_histogram(aes(x=without.x_i/all)) + facet_grid(time~x_iName)
 
 quartileSummary <- ddply(var_CO2, .(x_iName, time), summarize, L05=quantile(without.x_i/all, c(0.05), na.rm=TRUE), L25=quantile(without.x_i/all, c(0.25), na.rm=TRUE), L40=quantile(without.x_i/all, c(0.40), na.rm=TRUE), med=median(without.x_i/all, na.rm=TRUE), L60=quantile(without.x_i/all, c(0.60), na.rm=TRUE), L75=quantile(without.x_i/all, c(0.75), na.rm=TRUE), L95=quantile(without.x_i/all, c(0.95), na.rm=TRUE))
+
 ggplot(quartileSummary) + geom_ribbon(aes(ymin=L25, ymax=L75, y=med, x=time), alpha=0.5)  + geom_line(aes(x=time, y=med)) + facet_wrap(~x_iName) + labs(title=sprintf('Parameter driven variation (n=%d)', max(var_CO2$baseIndex)), y='[var(CO2|without parameter) / var(CO2|all)]')
 ```
